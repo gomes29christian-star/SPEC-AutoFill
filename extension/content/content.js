@@ -33,8 +33,14 @@
         return;
       }
 
-      // Se o clique foi dentro do próprio seletor flutuante, não reabre
+      // Se o clique foi dentro do próprio seletor flutuante ou modal, não reabre
       if (e.target.closest('#fillbox-floating-container') || e.target.closest('#fillbox-bind-modal')) {
+        return;
+      }
+
+      // Regra: A interface de fills só deve aparecer em espaços vazios (campos sem texto preenchido)
+      const currentVal = (target.isContentEditable ? target.textContent : target.value) || '';
+      if (currentVal.trim().length > 0) {
         return;
       }
 
@@ -47,7 +53,7 @@
       try {
         const found = await store.findBindingForField(norm.origin, norm.path, signature);
         if (found && found.folder) {
-          // Campo possui vínculo ativo! Abre o seletor flutuante
+          // Campo possui vínculo ativo e está vazio! Abre o seletor flutuante
           selector.open(target, found.folder, (fillItem) => {
             filler.insertTextIntoElement(target, fillItem.fill);
           });

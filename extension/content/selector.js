@@ -101,17 +101,23 @@
       const viewportWidth = window.innerWidth;
       const viewportHeight = window.innerHeight;
 
-      // Posição horizontal padrão: alinhado à esquerda do campo
-      let left = rect.left + scrollX;
-      if (rect.left + cardWidth > viewportWidth - 10) {
-        left = Math.max(10, viewportWidth - cardWidth - 10 + scrollX);
+      // Cálculo dos espaços vazios disponíveis ao redor do campo
+      const spaceBelow = viewportHeight - rect.bottom;
+      const spaceAbove = rect.top;
+
+      let top;
+      if (spaceBelow >= cardHeight + 8 || spaceBelow >= spaceAbove) {
+        // Há mais espaço vazio abaixo do campo
+        top = rect.bottom + scrollY + 6;
+      } else {
+        // Posiciona no espaço vazio acima do campo para não cobrir o elemento
+        top = Math.max(10, rect.top + scrollY - cardHeight - 6);
       }
 
-      // Posição vertical padrão: logo abaixo do campo
-      let top = rect.bottom + scrollY + 4;
-      // Se não couber embaixo, posiciona acima
-      if (rect.bottom + cardHeight > viewportHeight - 10 && rect.top > cardHeight + 10) {
-        top = rect.top + scrollY - cardHeight - 4;
+      // Alinhamento horizontal no espaço vazio disponível
+      let left = rect.left + scrollX;
+      if (rect.left + cardWidth > viewportWidth - 12) {
+        left = Math.max(12, viewportWidth - cardWidth - 12 + scrollX);
       }
 
       this.container.style.left = `${Math.round(left)}px`;

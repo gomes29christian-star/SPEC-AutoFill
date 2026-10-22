@@ -103,14 +103,20 @@ export const FloatingSelector: React.FC<FloatingSelectorProps> = ({
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
 
+    // Detecção inteligente de espaço vazio no viewport
+    const spaceBelow = viewportHeight - targetRect.bottom;
+    const spaceAbove = targetRect.top;
+
+    let top: number;
+    if (spaceBelow >= cardHeight + 8 || spaceBelow >= spaceAbove) {
+      top = targetRect.bottom + 6;
+    } else {
+      top = Math.max(12, targetRect.top - cardHeight - 6);
+    }
+
     let left = targetRect.left;
     if (left + cardWidth > viewportWidth - 16) {
       left = Math.max(16, viewportWidth - cardWidth - 16);
-    }
-
-    let top = targetRect.bottom + 6;
-    if (targetRect.bottom + cardHeight > viewportHeight - 16 && targetRect.top > cardHeight + 16) {
-      top = targetRect.top - cardHeight - 6;
     }
 
     style = {

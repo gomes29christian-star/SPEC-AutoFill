@@ -361,11 +361,20 @@ export default function App() {
     return { binding: bind, folder };
   };
 
-  // Simulação de clique esquerdo em campo
+  // Simulação de clique esquerdo em campo: apenas em espaços vazios
   const handleFieldClick = (e: React.MouseEvent<HTMLElement>) => {
     const el = e.currentTarget;
     if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'password') {
       showToast('Fillbox Segurança: Campos de senha não podem ser vinculados nem preenchidos.');
+      return;
+    }
+
+    // Regra: A interface de fills só deve aparecer em espaços vazios (sem texto previamente preenchido)
+    const currentValue = el.isContentEditable
+      ? (el.textContent || '')
+      : ((el as HTMLInputElement | HTMLTextAreaElement).value || '');
+    if (currentValue.trim().length > 0) {
+      // Campo já contém texto: não abre o seletor para não obstruir a edição
       return;
     }
 
@@ -377,6 +386,25 @@ export default function App() {
         targetRect: rect,
         folder: found.folder,
       });
+    }
+  };
+
+  // Se o usuário apagar todo o texto de um campo vinculado, abre o seletor no espaço vazio resultante
+  const handleFieldKeyUp = (e: React.KeyboardEvent<HTMLElement>) => {
+    const el = e.currentTarget;
+    const currentValue = el.isContentEditable
+      ? (el.textContent || '')
+      : ((el as HTMLInputElement | HTMLTextAreaElement).value || '');
+    if (currentValue.trim().length === 0 && !floatingState) {
+      const found = getBindingForElement(el.id);
+      if (found) {
+        const rect = el.getBoundingClientRect();
+        setFloatingState({
+          targetElement: el,
+          targetRect: rect,
+          folder: found.folder,
+        });
+      }
     }
   };
 
@@ -917,13 +945,14 @@ export default function App() {
                       id="sim_ticket_subject"
                       name="ticket_subject"
                       type="text"
-                      placeholder="Ex: Dúvida sobre integração"
+                      placeholder="Ex: Dúvida sobre integração (campo vazio abre o seletor)"
                       onClick={handleFieldClick}
+                      onKeyUp={handleFieldKeyUp}
                       onContextMenu={handleFieldContextMenu}
                       className="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg px-3.5 py-2 text-xs text-zinc-100 outline-none focus:border-amber-500 transition shadow-inner"
                     />
                     <span className="text-[10px] text-zinc-500 block">
-                      💡 Dica: Dê clique esquerdo para abrir o seletor de Fills ou clique direito para trocar a pasta.
+                      💡 Regra: A interface de Fills aparece apenas em espaços vazios. Clique em um campo sem texto ou apague o conteúdo existente para abrir o seletor.
                     </span>
                   </div>
 
@@ -960,8 +989,9 @@ export default function App() {
                       id="sim_ticket_message"
                       name="ticket_message"
                       rows={5}
-                      placeholder="Digite a resposta ao cliente..."
+                      placeholder="Digite a resposta ao cliente (se vazio, clique para abrir o seletor)..."
                       onClick={handleFieldClick}
+                      onKeyUp={handleFieldKeyUp}
                       onContextMenu={handleFieldContextMenu}
                       className="w-full bg-zinc-950 border border-zinc-700/80 rounded-lg px-3.5 py-2 text-xs text-zinc-100 outline-none focus:border-amber-500 transition shadow-inner font-sans resize-y"
                     />
@@ -982,11 +1012,10 @@ export default function App() {
                       contentEditable
                       suppressContentEditableWarning
                       onClick={handleFieldClick}
+                      onKeyUp={handleFieldKeyUp}
                       onContextMenu={handleFieldContextMenu}
-                      className="w-full min-h-[70px] bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 outline-none focus:border-amber-500 transition shadow-inner"
-                    >
-                      Área editável compatível com formatação rica.
-                    </div>
+                      className="w-full min-h-[70px] bg-zinc-950 border border-zinc-800 rounded-lg p-3 text-xs text-zinc-200 outline-none focus:border-amber-500 transition shadow-inner empty:before:content-['Clique_com_botão_direito_para_vincular_uma_pasta...'] empty:before:text-zinc-600"
+                    ></div>
                   </div>
 
                   {/* Field 4: Password Field (Segurança: Recusa estrita) */}

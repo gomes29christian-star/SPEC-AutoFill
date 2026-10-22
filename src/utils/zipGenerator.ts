@@ -272,16 +272,23 @@ ext.contextMenus.onClicked.addListener((info, tab) => {
 `);
 
   // Content script
-  zip.file('content/content.js', `// Content script entry point
+  zip.file('content/content.js', `// Content script entry point: apenas em espaços vazios
 document.addEventListener('click', async (e) => {
   const target = e.target;
   if (!window.FieldIdentifier?.isFieldSupported(target)) return;
+  if (e.target.closest('#fillbox-floating-container') || e.target.closest('#fillbox-bind-modal')) return;
+
+  // A interface de fills só aparece em espaços vazios (campo sem texto prévio)
+  const val = (target.isContentEditable ? target.textContent : target.value) || '';
+  if (val.trim().length > 0) return;
+
   const sig = window.FieldIdentifier.createFieldSignature(target);
   const norm = window.FieldIdentifier.normalizeUrl();
   const match = await window.FillboxStorage.store.findBindingForField(norm.origin, norm.path, sig);
   if (match) {
-    // Abre seletor com fills da pasta
-    console.log('[Fillbox] Campo vinculado com pasta:', match.folder.name);
+    window.FillboxSelector?.selectorInstance?.open(target, match.folder, (fillItem) => {
+      window.FillboxFiller?.insertTextIntoElement(target, fillItem.fill);
+    });
   }
 });
 `);
