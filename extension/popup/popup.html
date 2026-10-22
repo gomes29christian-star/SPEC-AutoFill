@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Fillbox</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <header class="header">
+      <div class="brand">
+        <span class="logo-icon">⚡</span>
+        <h1 class="logo-title">Fillbox</h1>
+      </div>
+      <button id="open-manager-btn" class="icon-btn" title="Abrir Gerenciador Completo">⚙ Gerenciar</button>
+    </header>
+
+    <div class="stats-bar">
+      <div class="stat-pill">
+        <span class="stat-num" id="folder-count">0</span>
+        <span class="stat-lbl">Pastas</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num" id="fill-count">0</span>
+        <span class="stat-lbl">Fills</span>
+      </div>
+      <div class="stat-pill">
+        <span class="stat-num" id="bind-count">0</span>
+        <span class="stat-lbl">Vínculos</span>
+      </div>
+    </div>
+
+    <div class="section-title">Pastas Disponíveis</div>
+    <div id="folders-quick-list" class="folders-list"></div>
+
+    <footer class="footer">
+      <span class="footer-tip">Clique com botão direito em qualquer campo de texto e escolha <strong>"Vincular pasta Fill"</strong>.</span>
+    </footer>
+  </div>
+
+  <script src="../shared/storage.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

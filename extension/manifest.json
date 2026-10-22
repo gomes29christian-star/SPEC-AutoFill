@@ -1,0 +1,52 @@
+{
+  "manifest_version": 3,
+  "name": "Fillbox — Autofill Minimalista",
+  "version": "1.0.0",
+  "description": "Ferramenta rápida e minimalista de preenchimento contextual de campos com textos reutilizáveis organizados em pastas.",
+  "icons": {
+    "16": "icons/icon-16.png",
+    "48": "icons/icon-48.png",
+    "128": "icons/icon-128.png"
+  },
+  "permissions": [
+    "storage",
+    "contextMenus",
+    "activeTab"
+  ],
+  "background": {
+    "scripts": ["shared/storage.js", "background/background.js"]
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": [
+        "shared/storage.js",
+        "content/field-identifier.js",
+        "content/filler.js",
+        "content/selector.js",
+        "content/content.js"
+      ],
+      "css": ["content/selector.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_popup": "popup/popup.html",
+    "default_title": "Fillbox",
+    "default_icon": {
+      "16": "icons/icon-16.png",
+      "48": "icons/icon-48.png",
+      "128": "icons/icon-128.png"
+    }
+  },
+  "options_ui": {
+    "page": "manager/manager.html",
+    "open_in_tab": true
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "fillbox@local.extension",
+      "strict_min_version": "109.0"
+    }
+  }
+}

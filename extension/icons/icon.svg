@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" width="128" height="128">
+  <rect width="128" height="128" rx="28" fill="#18181b" stroke="#3f3f46" stroke-width="4"/>
+  <!-- Box icon with lightning bolt -->
+  <path d="M34 46 L64 30 L94 46 L94 82 L64 98 L34 82 Z" fill="#27272a" stroke="#71717a" stroke-width="3" stroke-linejoin="round"/>
+  <path d="M64 30 L64 98" stroke="#3f3f46" stroke-width="2.5"/>
+  <path d="M34 46 L64 62 L94 46" stroke="#52525b" stroke-width="2.5"/>
+  <!-- Lightning Fill Symbol in Amber -->
+  <path d="M68 40 L52 66 L64 66 L60 88 L76 62 L64 62 Z" fill="#f59e0b" stroke="#d97706" stroke-width="2" stroke-linejoin="round"/>
+</svg>

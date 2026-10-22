@@ -1,0 +1,72 @@
+@import "tailwindcss";
+
+@layer base {
+  :root {
+    --theme-color: #f59e0b; /* Amber */
+    --theme-color-rgb: 245, 158, 11;
+    --theme-color-stroke: #f59e0b;
+  }
+
+  body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  }
+
+  code, pre, .font-mono {
+    font-family: 'JetBrains Mono', monospace;
+  }
+}
+
+/* Efeito de Stroke (Contorno) em textos e ícones modificados pela cor tema */
+.theme-stroke-text {
+  -webkit-text-stroke: 0.85px var(--theme-color-stroke);
+  text-shadow: 0 0 2px rgba(var(--theme-color-rgb), 0.35);
+}
+
+.theme-stroke-text-heavy {
+  -webkit-text-stroke: 1.2px var(--theme-color-stroke);
+  text-shadow: 0 0 3px rgba(var(--theme-color-rgb), 0.5);
+}
+
+.theme-stroke-icon {
+  stroke: var(--theme-color-stroke) !important;
+  stroke-width: 2.2px !important;
+  filter: drop-shadow(0 0 2px rgba(var(--theme-color-rgb), 0.45));
+}
+
+/* Animações para névoa das Conquistas Secretas */
+@keyframes mistDrift {
+  0% {
+    background-position: 0% 50%;
+    opacity: 0.92;
+  }
+  50% {
+    background-position: 100% 50%;
+    opacity: 0.98;
+  }
+  100% {
+    background-position: 0% 50%;
+    opacity: 0.92;
+  }
+}
+
+.fog-shroud {
+  background: radial-gradient(circle at 50% 50%, rgba(39, 39, 42, 0.95) 0%, rgba(24, 24, 27, 0.98) 100%);
+  backdrop-filter: blur(8px);
+  animation: mistDrift 6s ease infinite;
+}
+
+/* Scrollbar estilizada discreta */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: rgba(24, 24, 27, 0.5);
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(113, 113, 122, 0.4);
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(161, 161, 170, 0.6);
+}

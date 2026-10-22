@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fillbox — Gerenciador</title>
+  <link rel="stylesheet" href="manager.css">
+</head>
+<body>
+  <div class="manager-layout">
+    <!-- Topbar -->
+    <header class="topbar">
+      <div class="topbar-brand">
+        <span class="topbar-logo">⚡</span>
+        <div>
+          <h1 class="topbar-title">Fillbox</h1>
+          <span class="topbar-sub">Gerenciador de Pastas e Fills</span>
+        </div>
+      </div>
+      <div class="topbar-actions">
+        <button id="export-btn" class="btn btn-secondary">↓ Exportar JSON</button>
+        <label class="btn btn-secondary" style="cursor:pointer;">
+          ↑ Importar JSON
+          <input type="file" id="import-file" accept=".json" style="display:none;">
+        </label>
+      </div>
+    </header>
+
+    <!-- Content Columns -->
+    <div class="manager-main">
+      <!-- Sidebar / Folders -->
+      <aside class="sidebar">
+        <div class="sidebar-header">
+          <h2>Pastas</h2>
+          <button id="add-folder-btn" class="btn btn-primary btn-sm">+ Nova Pasta</button>
+        </div>
+        <div id="folders-container" class="folders-tree"></div>
+        
+        <div class="sidebar-footer">
+          <button id="view-bindings-btn" class="btn btn-ghost btn-sm" style="width:100%; text-align:left;">
+            🔗 Gerenciar Vínculos (<span id="total-bindings-count">0</span>)
+          </button>
+        </div>
+      </aside>
+
+      <!-- Main Panel / Fills of Selected Folder -->
+      <main class="content-panel">
+        <div class="panel-header">
+          <div>
+            <div class="folder-title-row">
+              <h2 id="active-folder-name">Selecione uma pasta</h2>
+              <button id="rename-folder-btn" class="btn-icon" title="Renomear Pasta">✏</button>
+              <button id="delete-folder-btn" class="btn-icon text-danger" title="Excluir Pasta">🗑</button>
+            </div>
+            <p id="active-folder-info" class="text-muted"></p>
+          </div>
+          <div class="panel-header-actions">
+            <input type="text" id="search-fills-input" class="search-box" placeholder="Buscar Fills por nome...">
+            <button id="add-fill-btn" class="btn btn-primary">+ Novo Fill</button>
+          </div>
+        </div>
+
+        <div id="fills-list" class="fills-grid"></div>
+      </main>
+    </div>
+  </div>
+
+  <!-- Modal Genérico -->
+  <div id="modal-backdrop" class="modal-backdrop hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <h3 id="modal-title">Título</h3>
+        <button id="modal-close-x" class="btn-icon">✕</button>
+      </div>
+      <div id="modal-body" class="modal-body"></div>
+      <div class="modal-footer">
+        <button id="modal-cancel-btn" class="btn btn-secondary">Cancelar</button>
+        <button id="modal-confirm-btn" class="btn btn-primary">Confirmar</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script src="../shared/storage.js"></script>
+  <script src="manager.js"></script>
+</body>
+</html>

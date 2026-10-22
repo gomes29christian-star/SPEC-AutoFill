@@ -1,0 +1,6 @@
+{
+  "name": "Fillbox — Extensão de Autofill Minimalista para Firefox e Floorp",
+  "description": "Extensão WebExtensions e ambiente de testes para gerenciamento e preenchimento contextual de campos com textos reutilizáveis organizados em pastas.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
