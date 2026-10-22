@@ -60,6 +60,54 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   });
 
+  // Context Menu Flutuante para Botão Direito
+  const contextMenuEl = document.getElementById('context-menu');
+
+  function showContextMenu(x, y, items) {
+    if (!contextMenuEl) return;
+    contextMenuEl.innerHTML = items
+      .map((item, idx) => {
+        if (item.separator) return '<div class="context-menu-sep"></div>';
+        return `
+          <div class="context-menu-item ${item.danger ? 'danger' : ''}" data-idx="${idx}">
+            <span>${escapeHTML(item.label)}</span>
+          </div>
+        `;
+      })
+      .join('');
+
+    const w = 210;
+    const h = items.length * 32;
+    const posX = Math.min(x, window.innerWidth - w - 10);
+    const posY = Math.min(y, window.innerHeight - h - 10);
+
+    contextMenuEl.style.left = `${Math.max(10, posX)}px`;
+    contextMenuEl.style.top = `${Math.max(10, posY)}px`;
+    contextMenuEl.classList.remove('hidden');
+
+    contextMenuEl.querySelectorAll('.context-menu-item').forEach((el) => {
+      el.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const idx = parseInt(el.getAttribute('data-idx') || '0', 10);
+        const item = items[idx];
+        hideContextMenu();
+        if (item && item.action) item.action();
+      });
+    });
+  }
+
+  function hideContextMenu() {
+    if (contextMenuEl) contextMenuEl.classList.add('hidden');
+  }
+
+  document.addEventListener('click', hideContextMenu);
+  document.addEventListener('contextmenu', (e) => {
+    // Fecha menu anterior se clicar fora dos alvos
+    if (!e.target.closest('.folder-item') && !e.target.closest('.fill-card') && !e.target.closest('#folders-container') && !e.target.closest('#fills-list')) {
+      hideContextMenu();
+    }
+  });
+
   // Normalização de texto
   function normalizeText(str) {
     if (!str) return '';
@@ -124,11 +172,51 @@ document.addEventListener('DOMContentLoaded', async () => {
       .join('');
 
     foldersContainer.querySelectorAll('.folder-item').forEach((el) => {
+      const folderId = el.getAttribute('data-id');
+      const folderItem = folders.find((f) => f.id === folderId);
+
       el.addEventListener('click', () => {
-        activeFolderId = el.getAttribute('data-id');
+        activeFolderId = folderId;
         refreshFolders();
         renderActiveFolder();
       });
+
+      // Clique com Botão Direito na Pasta: Novo Fill, Renomear, Excluir
+      el.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        activeFolderId = folderId;
+        refreshFolders();
+        showContextMenu(e.clientX, e.clientY, [
+          {
+            label: '🏷️➕ Novo Fill nesta pasta',
+            action: () => triggerAddFill(),
+          },
+          {
+            label: '✏ Renomear Pasta',
+            action: () => triggerRenameFolder(folderItem),
+          },
+          { separator: true },
+          {
+            label: '🗑 Excluir Pasta',
+            danger: true,
+            action: () => triggerDeleteFolder(folderItem),
+          },
+        ]);
+      });
+    });
+
+    // Clique com Botão Direito no fundo da lista de pastas
+    foldersContainer.addEventListener('contextmenu', (e) => {
+      if (e.target === foldersContainer || e.target.classList.contains('folders-tree')) {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY, [
+          {
+            label: '📁➕ Nova Pasta',
+            action: () => triggerAddFolder(),
+          },
+        ]);
+      }
     });
 
     renderActiveFolder();
@@ -203,11 +291,53 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       card.querySelector('.edit-fill-btn').addEventListener('click', () => triggerEditFill(item));
       card.querySelector('.delete-fill-btn').addEventListener('click', () => triggerDeleteFill(item));
+
+      // Clique com Botão Direito no Fill: Editar, Copiar, Excluir
+      card.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        showContextMenu(e.clientX, e.clientY, [
+          {
+            label: '✏ Editar Fill',
+            action: () => triggerEditFill(item),
+          },
+          {
+            label: '📋 Copiar Conteúdo',
+            action: () => {
+              navigator.clipboard.writeText(item.fill);
+              showToast('Texto do Fill copiado para a área de transferência.');
+            },
+          },
+          { separator: true },
+          {
+            label: '🗑 Excluir Fill',
+            danger: true,
+            action: () => triggerDeleteFill(item),
+          },
+        ]);
+      });
+    });
+
+    // Clique com Botão Direito na área vazia dos fills
+    fillsList.addEventListener('contextmenu', (e) => {
+      if (!e.target.closest('.fill-card')) {
+        e.preventDefault();
+        showContextMenu(e.clientX, e.clientY, [
+          {
+            label: '🏷️➕ Novo Fill nesta pasta',
+            action: () => triggerAddFill(),
+          },
+          {
+            label: '📁➕ Nova Pasta',
+            action: () => triggerAddFolder(),
+          },
+        ]);
+      }
     });
   }
 
   // ================= AÇÕES DE PASTA =================
-  addFolderBtn.addEventListener('click', () => {
+  function triggerAddFolder() {
     openModal(
       'Criar Nova Pasta',
       `
@@ -228,10 +358,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         await refreshFolders();
       }
     );
-  });
+  }
 
-  renameFolderBtn.addEventListener('click', async () => {
-    const folder = await store.getFolder(activeFolderId);
+  addFolderBtn.addEventListener('click', triggerAddFolder);
+
+  function triggerRenameFolder(targetFolder) {
+    const folder = targetFolder || folders.find((f) => f.id === activeFolderId);
     if (!folder) return;
 
     openModal(
@@ -253,10 +385,12 @@ document.addEventListener('DOMContentLoaded', async () => {
         await refreshFolders();
       }
     );
-  });
+  }
 
-  deleteFolderBtn.addEventListener('click', async () => {
-    const folder = await store.getFolder(activeFolderId);
+  renameFolderBtn.addEventListener('click', () => triggerRenameFolder());
+
+  function triggerDeleteFolder(targetFolder) {
+    const folder = targetFolder || folders.find((f) => f.id === activeFolderId);
     if (!folder) return;
 
     openModal(
@@ -273,12 +407,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       async () => {
         const res = await store.deleteFolder(folder.id);
         showToast(`Pasta excluída. ${res.removedBindings} vínculos desativados.`);
-        activeFolderId = null;
+        if (activeFolderId === folder.id) activeFolderId = null;
         await refreshFolders();
       },
       'Excluir Pasta Definitivamente'
     );
-  });
+  }
+
+  deleteFolderBtn.addEventListener('click', () => triggerDeleteFolder());
 
   // ================= AÇÕES DE FILL =================
   function triggerAddFill() {

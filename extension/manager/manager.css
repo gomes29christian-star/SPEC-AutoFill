@@ -419,3 +419,50 @@ body {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
   font-size: 12px;
 }
+
+/* Menu de Contexto (Botão Direito) */
+.context-menu {
+  position: fixed;
+  z-index: 3000;
+  background-color: #18181b;
+  border: 1px solid #3f3f46;
+  border-radius: 8px;
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
+  padding: 4px;
+  min-width: 190px;
+  user-select: none;
+}
+
+.context-menu.hidden {
+  display: none;
+}
+
+.context-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  font-size: 12px;
+  color: #f4f4f5;
+  cursor: pointer;
+  border-radius: 5px;
+  transition: background-color 0.1s;
+}
+
+.context-menu-item:hover {
+  background-color: #27272a;
+}
+
+.context-menu-item.danger {
+  color: #ef4444;
+}
+
+.context-menu-item.danger:hover {
+  background-color: rgba(239, 68, 68, 0.15);
+}
+
+.context-menu-sep {
+  height: 1px;
+  background-color: #27272a;
+  margin: 4px 0;
+}

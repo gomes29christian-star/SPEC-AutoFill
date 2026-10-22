@@ -212,6 +212,20 @@ export default function App() {
     targetElement: null,
   });
 
+  // Menu de Contexto (Botão Direito) Customizado
+  const [contextMenu, setContextMenu] = useState<{
+    isOpen: boolean;
+    x: number;
+    y: number;
+    type: 'folder' | 'fill' | 'folder-area' | 'fill-area' | 'field';
+    data?: any;
+  }>({
+    isOpen: false,
+    x: 0,
+    y: 0,
+    type: 'folder',
+  });
+
   // Tema de Cores
   const [theme, setTheme] = useState(THEMES[0]);
 
@@ -315,6 +329,14 @@ export default function App() {
     localStorage.setItem('fillbox_achievements_list', JSON.stringify(achievements));
   }, [achievements]);
 
+  useEffect(() => {
+    const handleCloseContextMenu = () => {
+      setContextMenu((prev) => (prev.isOpen ? { ...prev, isOpen: false } : prev));
+    };
+    window.addEventListener('click', handleCloseContextMenu);
+    return () => window.removeEventListener('click', handleCloseContextMenu);
+  }, []);
+
   // Toast temporizado
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -408,9 +430,10 @@ export default function App() {
     }
   };
 
-  // Simulação de clique direito em campo
+  // Simulação de clique direito em campo: abre menu de contexto da extensão
   const handleFieldContextMenu = (e: React.MouseEvent<HTMLElement>) => {
     e.preventDefault();
+    e.stopPropagation();
     const el = e.currentTarget;
 
     if (el.tagName === 'INPUT' && (el as HTMLInputElement).type === 'password') {
@@ -435,12 +458,63 @@ export default function App() {
       autocomplete: null,
     };
 
-    setBindModalState({
+    setContextMenu({
       isOpen: true,
-      fieldSignature: sig,
-      currentBinding: boundInfo ? boundInfo.binding : null,
-      pagePath: '/suporte/novo-chamado',
-      targetElement: el,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'field',
+      data: { element: el, signature: sig, boundInfo },
+    });
+  };
+
+  // Botão direito em uma Pasta
+  const handleFolderContextMenu = (e: React.MouseEvent, folder: FolderItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setSelectedFolderId(folder.id);
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'folder',
+      data: folder,
+    });
+  };
+
+  // Botão direito na área livre das Pastas
+  const handleFolderAreaContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'folder-area',
+    });
+  };
+
+  // Botão direito em um Fill
+  const handleFillContextMenu = (e: React.MouseEvent, fill: FillItem) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'fill',
+      data: fill,
+    });
+  };
+
+  // Botão direito na área livre dos Fills
+  const handleFillAreaContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setContextMenu({
+      isOpen: true,
+      x: e.clientX,
+      y: e.clientY,
+      type: 'fill-area',
     });
   };
 
@@ -665,18 +739,23 @@ export default function App() {
     reader.readAsText(file);
   };
 
-  // Download do ZIP da Extensão
-  const handleDownloadZip = async () => {
+  // Download do ZIP da Extensão (Firefox/Floorp ou Chromium/Chrome/Edge/Brave/Opera)
+  const handleDownloadZip = async (target: 'firefox' | 'chromium' = 'firefox') => {
     try {
-      showToast('Gerando pacote compactado para Firefox e Floorp...');
-      const blob = await generateExtensionZipBlob();
+      const isChromium = target === 'chromium';
+      showToast(
+        isChromium
+          ? 'Gerando pacote completo para Chrome, Edge, Brave e Opera...'
+          : 'Gerando pacote completo para Firefox e Floorp...'
+      );
+      const blob = await generateExtensionZipBlob(target);
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = 'fillbox-v1.0.0-firefox-floorp.zip';
+      a.download = isChromium ? 'fillbox-v1.0.0-chromium.zip' : 'fillbox-v1.0.0-firefox-floorp.zip';
       a.click();
       URL.revokeObjectURL(url);
-      showToast('Download do arquivo fillbox-v1.0.0-firefox-floorp.zip concluído!');
+      showToast(`Download de ${a.download} concluído com sucesso!`);
     } catch (err: any) {
       alert('Erro ao gerar pacote zip: ' + err.message);
     }
@@ -1197,10 +1276,14 @@ export default function App() {
                   </span>
                 </div>
 
-                <div className="space-y-1.5 max-h-[500px] overflow-y-auto">
+                <div
+                  className="space-y-1.5 max-h-[500px] overflow-y-auto"
+                  onContextMenu={handleFolderAreaContextMenu}
+                  title="Clique com o botão direito para opções da pasta"
+                >
                   {folders.length === 0 ? (
                     <div className="p-4 text-center text-xs text-zinc-500">
-                      Nenhuma pasta criada.
+                      Nenhuma pasta criada. Clique com o botão direito para criar.
                     </div>
                   ) : (
                     folders.map((folder) => {
@@ -1209,6 +1292,7 @@ export default function App() {
                         <div
                           key={folder.id}
                           onClick={() => setSelectedFolderId(folder.id)}
+                          onContextMenu={(e) => handleFolderContextMenu(e, folder)}
                           className={`p-2.5 rounded-lg cursor-pointer flex items-center justify-between text-xs transition ${
                             isActive
                               ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold'
@@ -1282,13 +1366,18 @@ export default function App() {
                       </div>
                     </div>
 
-                    {/* Fills Grid */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    {/* Fills Grid com suporte a Botão Direito */}
+                    <div
+                      className="grid grid-cols-1 md:grid-cols-2 gap-4"
+                      onContextMenu={handleFillAreaContextMenu}
+                      title="Clique com o botão direito para opções de Fills"
+                    >
                       {filteredFills && filteredFills.length > 0 ? (
                         filteredFills.map((item) => (
                           <div
                             key={item.id}
-                            className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-zinc-700 transition"
+                            onContextMenu={(e) => handleFillContextMenu(e, item)}
+                            className="bg-zinc-950 border border-zinc-800 rounded-xl p-4 flex flex-col justify-between space-y-3 hover:border-zinc-700 transition cursor-default select-none"
                           >
                             <div className="space-y-2">
                               <div className="flex items-center justify-between">
@@ -1450,65 +1539,79 @@ export default function App() {
         {/* ================= ABA 4: INSTALAÇÃO & CÓDIGO FONTE DA EXTENSÃO ================= */}
         {activeTab === 'install' && (
           <div className="space-y-6 animate-fadeIn">
-            {/* Top Download Card */}
-            <div className="p-6 bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-800 border border-zinc-700/80 rounded-2xl shadow-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-6">
-              <div className="space-y-1.5">
-                <div className="flex items-center gap-2">
-                  <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                    Extensão Pronta para Firefox e Floorp
-                  </span>
-                  <span className="text-xs text-zinc-400 font-mono">v1.0.0</span>
+            {/* Top Download Card with Dual Browser Options */}
+            <div className="p-6 bg-gradient-to-r from-zinc-900 via-zinc-900 to-zinc-800 border border-zinc-700/80 rounded-2xl shadow-2xl space-y-6">
+              <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-2">
+                    <span className="px-2 py-0.5 rounded text-[10px] uppercase font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                      Multi-Navegador • Firefox, Floorp, Chrome, Edge, Brave & Opera
+                    </span>
+                    <span className="text-xs text-zinc-400 font-mono">v1.0.0</span>
+                  </div>
+                  <h2 className="text-lg font-bold text-zinc-100 theme-stroke-text">
+                    Baixe o Pacote da Extensão (.zip) para seu Navegador
+                  </h2>
+                  <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
+                    Extensão completa com Manifest V3, seletor contextual flutuante que aparece apenas em espaços vazios, atalhos de teclado (↑/↓/Enter/Esc), menu de contexto com botão direito para vincular, criar e excluir pastas/fills, além de armazenamento 100% local.
+                  </p>
                 </div>
-                <h2 className="text-lg font-bold text-zinc-100 theme-stroke-text">
-                  Baixe o Pacote da Extensão (.zip)
-                </h2>
-                <p className="text-xs text-zinc-400 max-w-2xl leading-relaxed">
-                  Contém todos os arquivos do WebExtensions Manifest V3 (manifest.json, background script, content scripts, seletor flutuante com navegação por teclado, armazenamento local e ícones).
-                </p>
               </div>
 
-              <button
-                onClick={handleDownloadZip}
-                className="px-6 py-3 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-xl flex items-center gap-2 shadow-xl shadow-amber-500/20 transition shrink-0"
-              >
-                <Download className="w-4 h-4" />
-                <span>Baixar fillbox-firefox-floorp.zip</span>
-              </button>
+              {/* Botões de Download */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 pt-2 border-t border-zinc-800">
+                <div className="p-4 bg-zinc-950/70 border border-zinc-800 hover:border-amber-500/40 rounded-xl transition flex flex-col justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🦊</span>
+                      <span className="text-xs font-bold text-zinc-200">Mozilla Firefox & Floorp</span>
+                      <span className="text-[10px] px-1.5 py-0.2 bg-amber-500/10 text-amber-400 rounded font-mono">Gecko V3</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      Otimizado para Firefox e Floorp (com suporte a barra lateral e background scripts nativos).
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownloadZip('firefox')}
+                    className="w-full py-2.5 px-4 bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-amber-500/20 transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Baixar fillbox-firefox-floorp.zip</span>
+                  </button>
+                </div>
+
+                <div className="p-4 bg-zinc-950/70 border border-zinc-800 hover:border-sky-500/40 rounded-xl transition flex flex-col justify-between gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="text-base">🌐</span>
+                      <span className="text-xs font-bold text-zinc-200">Chrome, Edge, Brave, Opera & Vivaldi</span>
+                      <span className="text-[10px] px-1.5 py-0.2 bg-sky-500/10 text-sky-400 rounded font-mono">Chromium V3</span>
+                    </div>
+                    <p className="text-[11px] text-zinc-400">
+                      Compatível com todos os navegadores Chromium (utilizando Service Worker em segundo plano).
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => handleDownloadZip('chromium')}
+                    className="w-full py-2.5 px-4 bg-sky-500 hover:bg-sky-400 text-zinc-950 font-bold text-xs rounded-lg flex items-center justify-center gap-2 shadow-lg shadow-sky-500/20 transition cursor-pointer"
+                  >
+                    <Download className="w-3.5 h-3.5" />
+                    <span>Baixar fillbox-chromium.zip</span>
+                  </button>
+                </div>
+              </div>
             </div>
 
-            {/* Guia Passo a Passo */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Guias de Instalação e Uso em Múltiplos Navegadores */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
               <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
                 <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                  <span>🦊 Como carregar no Mozilla Firefox</span>
+                  <span>🦊 Firefox & Floorp</span>
                 </h3>
                 <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside leading-relaxed">
                   <li>
-                    Abra uma nova aba e digite na barra de endereços:{' '}
-                    <code className="text-amber-400 bg-zinc-950 px-1.5 py-0.5 rounded font-mono">
-                      about:debugging#/runtime/this-firefox
-                    </code>
-                  </li>
-                  <li>
-                    Clique no botão <strong>"Carregar extensão temporária..."</strong>.
-                  </li>
-                  <li>
-                    Extraia o arquivo zip baixado e selecione o arquivo <strong>manifest.json</strong> na pasta.
-                  </li>
-                  <li>
-                    A extensão será carregada imediatamente, pronta para uso com menu de contexto e seletor flutuante.
-                  </li>
-                </ol>
-              </div>
-
-              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
-                <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
-                  <span>🌀 Como carregar no Floorp Browser</span>
-                </h3>
-                <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside leading-relaxed">
-                  <li>
-                    No Floorp, abra:{' '}
-                    <code className="text-amber-400 bg-zinc-950 px-1.5 py-0.5 rounded font-mono">
+                    Na barra de endereços, digite:{' '}
+                    <code className="text-amber-400 bg-zinc-950 px-1.5 py-0.5 rounded font-mono text-[11px]">
                       about:debugging#/runtime/this-firefox
                     </code>
                   </li>
@@ -1516,12 +1619,59 @@ export default function App() {
                     Clique em <strong>"Carregar extensão temporária..."</strong>.
                   </li>
                   <li>
-                    Selecione o arquivo <strong>manifest.json</strong> descompactado.
+                    Extraia o <code>fillbox-firefox-floorp.zip</code> e selecione o arquivo <strong>manifest.json</strong>.
                   </li>
                   <li>
-                    Você poderá utilizá-la em painéis da barra lateral do Floorp ou na janela principal sem conflitos de atalhos.
+                    Pronto! Clique com o botão direito em qualquer campo de texto para vincular pastas ou criar Fills.
                   </li>
                 </ol>
+              </div>
+
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+                <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                  <span>🌐 Chrome, Edge, Brave & Opera</span>
+                </h3>
+                <ol className="text-xs text-zinc-400 space-y-2 list-decimal list-inside leading-relaxed">
+                  <li>
+                    Acesse a página de extensões:{' '}
+                    <code className="text-sky-400 bg-zinc-950 px-1.5 py-0.5 rounded font-mono text-[11px]">
+                      chrome://extensions
+                    </code>{' '}
+                    (ou <code>brave://extensions</code> / <code>edge://extensions</code>).
+                  </li>
+                  <li>
+                    No canto superior direito, ative a chave <strong>"Modo do desenvolvedor"</strong>.
+                  </li>
+                  <li>
+                    Clique em <strong>"Carregar sem compactação"</strong> (Load unpacked) e selecione a pasta extraída do <code>fillbox-chromium.zip</code>.
+                  </li>
+                  <li>
+                    A extensão funcionará com menu de contexto, popup e seletor flutuante completo.
+                  </li>
+                </ol>
+              </div>
+
+              <div className="bg-zinc-900 border border-zinc-800 rounded-xl p-5 space-y-3">
+                <h3 className="text-sm font-bold text-zinc-100 flex items-center gap-2">
+                  <span>🔄 Gerenciar via Qualquer Navegador</span>
+                </h3>
+                <div className="text-xs text-zinc-400 space-y-2 leading-relaxed">
+                  <p>
+                    Você pode usar este aplicativo web em <strong>qualquer navegador ou dispositivo</strong> para organizar seus dados:
+                  </p>
+                  <ul className="list-disc list-inside space-y-1 text-zinc-300">
+                    <li>Crie pastas e preenchimentos com clique direito ou botões rápidos.</li>
+                    <li>
+                      Clique em <strong>"Exportar JSON"</strong> para salvar seu arquivo de dados.
+                    </li>
+                    <li>
+                      No outro navegador, abra a extensão (ou o Gerenciador interno <code>manager.html</code>) e clique em <strong>"Importar"</strong>.
+                    </li>
+                  </ul>
+                  <p className="text-[11px] text-zinc-400 pt-1 border-t border-zinc-800">
+                    Seus dados nunca saem do seu computador (armazenamento estritamente local e sem telemetria).
+                  </p>
+                </div>
               </div>
             </div>
 
@@ -1827,6 +1977,253 @@ if (element.tagName === 'INPUT' && element.type?.toLowerCase() === 'password') {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+      {/* Menu de Contexto Customizado Flutuante (Botão Direito) */}
+      {contextMenu.isOpen && (
+        <div
+          onClick={(e) => e.stopPropagation()}
+          style={{
+            position: 'fixed',
+            left: `${Math.max(10, Math.min(contextMenu.x, window.innerWidth - 220))}px`,
+            top: `${Math.max(10, Math.min(contextMenu.y, window.innerHeight - 220))}px`,
+            zIndex: 99999,
+          }}
+          className="w-56 bg-zinc-900 border border-zinc-700/90 rounded-xl shadow-2xl shadow-black/90 p-1.5 text-xs text-zinc-100 flex flex-col font-sans animate-scaleIn select-none"
+        >
+          {/* Header indicativo do alvo */}
+          <div className="px-2.5 py-1 text-[10px] font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-800 flex items-center justify-between">
+            <span>
+              {contextMenu.type === 'folder' && 'Opções da Pasta'}
+              {contextMenu.type === 'fill' && 'Opções do Fill'}
+              {contextMenu.type === 'field' && 'Fillbox Contexto'}
+              {contextMenu.type === 'folder-area' && 'Menu de Pastas'}
+              {contextMenu.type === 'fill-area' && 'Menu de Fills'}
+            </span>
+            <span className="text-amber-500 font-mono text-[9px]">⚡ Fillbox</span>
+          </div>
+
+          <div className="py-1 space-y-0.5">
+            {/* Opções de Pasta */}
+            {contextMenu.type === 'folder' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    setSelectedFolderId(contextMenu.data.id);
+                    setFillModalMode('create');
+                    setFillNameInput('');
+                    setFillContentInput('');
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Novo Fill nesta pasta</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    const newName = prompt('Novo nome para a pasta:', contextMenu.data.name);
+                    if (newName && newName.trim()) {
+                      setFolders((prev) =>
+                        prev.map((f) =>
+                          f.id === contextMenu.data.id ? { ...f, name: newName.trim() } : f
+                        )
+                      );
+                      showToast('Pasta renomeada.');
+                    }
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Renomear Pasta</span>
+                </button>
+                <div className="h-px bg-zinc-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    const folder = contextMenu.data as FolderItem;
+                    const confirmDel = window.confirm(
+                      `Atenção: Excluir a pasta "${folder.name}" apagará seus ${folder.fills.length} Fills e desativará os vínculos correspondentes. Confirmar?`
+                    );
+                    if (confirmDel) {
+                      setFolders((prev) => prev.filter((f) => f.id !== folder.id));
+                      setBindings((prev) => prev.filter((b) => b.folderId !== folder.id));
+                      if (selectedFolderId === folder.id) {
+                        const rem = folders.filter((f) => f.id !== folder.id);
+                        setSelectedFolderId(rem[0]?.id || '');
+                      }
+                      showToast('Pasta excluída.');
+                    }
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 text-red-400 flex items-center gap-2 transition font-medium"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Excluir Pasta</span>
+                </button>
+              </>
+            )}
+
+            {/* Opções de Área de Pastas */}
+            {contextMenu.type === 'folder-area' && (
+              <button
+                type="button"
+                onClick={() => {
+                  setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                  handleCreateFolder();
+                }}
+                className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+              >
+                <Plus className="w-3.5 h-3.5 text-amber-400" />
+                <span>Nova Pasta</span>
+              </button>
+            )}
+
+            {/* Opções de Fill */}
+            {contextMenu.type === 'fill' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    const fill = contextMenu.data as FillItem;
+                    setEditingFill(fill);
+                    setFillNameInput(fill.name);
+                    setFillContentInput(fill.fill);
+                    setFillModalMode('edit');
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Edit2 className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Editar Fill</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    const fill = contextMenu.data as FillItem;
+                    navigator.clipboard.writeText(fill.fill);
+                    showToast('Conteúdo do Fill copiado!');
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Copy className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Copiar Conteúdo</span>
+                </button>
+                <div className="h-px bg-zinc-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    handleDeleteFill(contextMenu.data.id);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 text-red-400 flex items-center gap-2 transition font-medium"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Excluir Fill</span>
+                </button>
+              </>
+            )}
+
+            {/* Opções de Área de Fills */}
+            {contextMenu.type === 'fill-area' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    setFillModalMode('create');
+                    setFillNameInput('');
+                    setFillContentInput('');
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Novo Fill nesta pasta</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    handleCreateFolder();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Folder className="w-3.5 h-3.5 text-zinc-400" />
+                  <span>Criar Nova Pasta</span>
+                </button>
+              </>
+            )}
+
+            {/* Opções de Campo no Formulário */}
+            {contextMenu.type === 'field' && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    setBindModalState({
+                      isOpen: true,
+                      fieldSignature: contextMenu.data.signature,
+                      currentBinding: contextMenu.data.boundInfo?.binding || null,
+                      pagePath: '/suporte/novo-chamado',
+                      targetElement: contextMenu.data.element,
+                    });
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Link2 className="w-3.5 h-3.5 text-amber-400" />
+                  <span>
+                    {contextMenu.data.boundInfo ? 'Alterar Pasta Vinculada' : 'Vincular pasta Fill'}
+                  </span>
+                </button>
+                <div className="h-px bg-zinc-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    handleCreateFolder();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-emerald-400" />
+                  <span>Nova Pasta...</span>
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    const val =
+                      (contextMenu.data.element as HTMLInputElement | HTMLTextAreaElement).value ||
+                      contextMenu.data.element.textContent ||
+                      '';
+                    setFillModalMode('create');
+                    setFillNameInput('');
+                    setFillContentInput(val);
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-zinc-800 flex items-center gap-2 transition"
+                >
+                  <Plus className="w-3.5 h-3.5 text-amber-400" />
+                  <span>Novo Fill...</span>
+                </button>
+                <div className="h-px bg-zinc-800 my-1" />
+                <button
+                  type="button"
+                  onClick={() => {
+                    setContextMenu((prev) => ({ ...prev, isOpen: false }));
+                    handleDeleteFolder();
+                  }}
+                  className="w-full text-left px-2.5 py-1.5 rounded-lg hover:bg-red-500/15 text-red-400 flex items-center gap-2 transition font-medium"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                  <span>Excluir Pasta...</span>
+                </button>
+              </>
+            )}
           </div>
         </div>
       )}
