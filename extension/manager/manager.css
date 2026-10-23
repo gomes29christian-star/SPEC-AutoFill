@@ -40,17 +40,21 @@ body {
   padding: 12px 24px;
   background-color: var(--bg-surface);
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 12px;
 }
 
 .topbar-brand {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .topbar-logo {
   font-size: 20px;
   color: var(--color-primary);
+  flex-shrink: 0;
 }
 
 .topbar-title {
@@ -66,7 +70,9 @@ body {
 
 .topbar-actions {
   display: flex;
+  align-items: center;
   gap: 10px;
+  flex-shrink: 0;
 }
 
 .manager-main {
@@ -153,16 +159,19 @@ body {
 .panel-header {
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   margin-bottom: 20px;
   padding-bottom: 16px;
   border-bottom: 1px solid var(--border-color);
+  flex-wrap: wrap;
+  gap: 16px;
 }
 
 .folder-title-row {
   display: flex;
   align-items: center;
   gap: 10px;
+  flex-wrap: wrap;
 }
 
 .folder-title-row h2 {
@@ -179,17 +188,19 @@ body {
   display: flex;
   gap: 12px;
   align-items: center;
+  flex-shrink: 0;
 }
 
 .search-box {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   color: var(--text-main);
-  padding: 6px 12px;
+  padding: 7px 12px;
   border-radius: 6px;
   font-size: 12px;
-  width: 220px;
+  width: 240px;
   outline: none;
+  flex-shrink: 0;
 }
 
 .search-box:focus {
@@ -253,13 +264,17 @@ body {
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 6px;
   font-weight: 500;
   border-radius: 6px;
-  padding: 6px 12px;
+  padding: 7px 14px;
   font-size: 12px;
   cursor: pointer;
   border: 1px solid transparent;
-  transition: all 0.15s;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+  user-select: none;
 }
 
 .btn-primary {
@@ -280,6 +295,7 @@ body {
 
 .btn-secondary:hover {
   background-color: var(--bg-subtle);
+  border-color: #52525b;
 }
 
 .btn-ghost {
@@ -293,7 +309,7 @@ body {
 }
 
 .btn-sm {
-  padding: 4px 8px;
+  padding: 5px 10px;
   font-size: 11px;
 }
 
@@ -302,9 +318,14 @@ body {
   border: none;
   color: var(--text-muted);
   cursor: pointer;
-  padding: 4px;
+  padding: 6px;
   border-radius: 4px;
   font-size: 13px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  transition: all 0.12s;
 }
 
 .btn-icon:hover {
@@ -320,12 +341,13 @@ body {
 .modal-backdrop {
   position: fixed;
   inset: 0;
-  background-color: rgba(0, 0, 0, 0.7);
-  backdrop-filter: blur(2px);
+  background-color: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(3px);
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 1000;
+  padding: 16px;
 }
 
 .modal-backdrop.hidden {
@@ -336,14 +358,14 @@ body {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  width: 440px;
-  max-width: 90vw;
+  width: 480px;
+  max-width: 95vw;
   box-shadow: 0 20px 40px rgba(0, 0, 0, 0.8);
   overflow: hidden;
 }
 
 .modal-header {
-  padding: 12px 16px;
+  padding: 14px 18px;
   background-color: var(--bg-subtle);
   border-bottom: 1px solid var(--border-color);
   display: flex;
@@ -357,11 +379,11 @@ body {
 }
 
 .modal-body {
-  padding: 16px;
+  padding: 18px;
 }
 
 .modal-footer {
-  padding: 12px 16px;
+  padding: 14px 18px;
   border-top: 1px solid #27272a;
   display: flex;
   justify-content: flex-end;
@@ -369,7 +391,7 @@ body {
 }
 
 .form-group {
-  margin-bottom: 12px;
+  margin-bottom: 14px;
 }
 
 .form-group label {
@@ -377,7 +399,7 @@ body {
   font-size: 11px;
   font-weight: 600;
   color: var(--text-muted);
-  margin-bottom: 4px;
+  margin-bottom: 6px;
 }
 
 .form-input, .form-textarea {
@@ -386,8 +408,8 @@ body {
   border: 1px solid var(--border-color);
   border-radius: 6px;
   color: var(--text-main);
-  padding: 8px 10px;
-  font-size: 12px;
+  padding: 9px 12px;
+  font-size: 13px;
   outline: none;
 }
 
@@ -396,15 +418,15 @@ body {
 }
 
 .form-textarea {
-  min-height: 80px;
+  min-height: 90px;
   resize: vertical;
   font-family: inherit;
 }
 
 .toast-container {
   position: fixed;
-  bottom: 20px;
-  right: 20px;
+  bottom: 24px;
+  right: 24px;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -414,10 +436,11 @@ body {
 .toast {
   background-color: var(--bg-surface);
   border: 1px solid var(--border-color);
-  padding: 10px 14px;
-  border-radius: 6px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
-  font-size: 12px;
+  padding: 12px 16px;
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.6);
+  font-size: 13px;
+  max-width: 380px;
 }
 
 /* Menu de Contexto (Botão Direito) */
@@ -429,7 +452,7 @@ body {
   border-radius: 8px;
   box-shadow: 0 12px 30px rgba(0, 0, 0, 0.8);
   padding: 4px;
-  min-width: 190px;
+  min-width: 200px;
   user-select: none;
 }
 
@@ -441,7 +464,7 @@ body {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding: 7px 10px;
+  padding: 8px 12px;
   font-size: 12px;
   color: #f4f4f5;
   cursor: pointer;
@@ -467,7 +490,7 @@ body {
   margin: 4px 0;
 }
 
-/* Responsividade e Adaptação a qualquer escala/tamanho de tela */
+/* Layout Responsivo para Telas Pequenas */
 @media (max-width: 860px) {
   .manager-main {
     flex-direction: column;
@@ -475,7 +498,7 @@ body {
   }
   .sidebar {
     width: 100%;
-    max-height: 220px;
+    max-height: 240px;
     border-right: none;
     border-bottom: 1px solid var(--border-color);
   }
@@ -487,27 +510,29 @@ body {
   }
 }
 
-@media (max-width: 540px) {
+@media (max-width: 600px) {
   .topbar {
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    padding: 10px 14px;
+    gap: 12px;
+    padding: 12px 16px;
   }
   .topbar-actions {
     width: 100%;
     justify-content: flex-start;
     flex-wrap: wrap;
+    gap: 8px;
   }
   .panel-header {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 14px;
   }
   .panel-header-actions {
     flex-direction: column;
     align-items: stretch;
     width: 100%;
+    gap: 8px;
   }
   .search-box {
     width: 100%;
@@ -517,8 +542,187 @@ body {
   }
 }
 
-@media (min-width: 1600px) {
+/* Otimização para Telas Grandes, Full HD, 2K e 4K Ultra HD */
+@media (min-width: 1400px) {
+  .sidebar {
+    width: clamp(280px, 18vw, 360px);
+  }
   .fills-grid {
-    grid-template-columns: repeat(auto-fill, minmax(360px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
+    gap: 18px;
+  }
+  .content-panel {
+    padding: 28px 40px;
+  }
+}
+
+@media (min-width: 2000px) {
+  body {
+    font-size: 15px;
+  }
+  .topbar {
+    padding: 16px 36px;
+  }
+  .topbar-logo {
+    font-size: 26px;
+  }
+  .topbar-title {
+    font-size: 19px;
+  }
+  .topbar-sub {
+    font-size: 13px;
+  }
+  .sidebar {
+    width: clamp(320px, 16vw, 440px);
+  }
+  .sidebar-header {
+    padding: 18px 20px;
+  }
+  .sidebar-header h2 {
+    font-size: 14px;
+  }
+  .folder-item {
+    padding: 10px 16px;
+    font-size: 14px;
+  }
+  .badge {
+    font-size: 11px;
+    padding: 3px 8px;
+  }
+  .content-panel {
+    padding: 32px 48px;
+  }
+  .folder-title-row h2 {
+    font-size: 24px;
+  }
+  .text-muted {
+    font-size: 13px;
+  }
+  .search-box {
+    width: 320px;
+    font-size: 14px;
+    padding: 9px 16px;
+  }
+  .btn {
+    padding: 9px 18px;
+    font-size: 14px;
+    border-radius: 8px;
+  }
+  .btn-sm {
+    padding: 6px 12px;
+    font-size: 12px;
+  }
+  .fills-grid {
+    grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+    gap: 22px;
+  }
+  .fill-card {
+    padding: 18px;
+    gap: 14px;
+  }
+  .fill-card-title {
+    font-size: 15px;
+  }
+  .fill-card-body {
+    font-size: 13px;
+    padding: 12px 14px;
+    max-height: 120px;
+  }
+  .fill-card-footer {
+    font-size: 12px;
+  }
+}
+
+@media (min-width: 3000px) {
+  /* Escala Nativa para Monitores 4K (3840x2160) */
+  body {
+    font-size: 17px;
+  }
+  .topbar {
+    padding: 20px 48px;
+  }
+  .topbar-logo {
+    font-size: 32px;
+  }
+  .topbar-title {
+    font-size: 22px;
+  }
+  .topbar-sub {
+    font-size: 14px;
+  }
+  .sidebar {
+    width: clamp(380px, 15vw, 520px);
+  }
+  .sidebar-header {
+    padding: 22px 24px;
+  }
+  .sidebar-header h2 {
+    font-size: 16px;
+  }
+  .folder-item {
+    padding: 14px 20px;
+    font-size: 16px;
+  }
+  .badge {
+    font-size: 13px;
+    padding: 4px 10px;
+  }
+  .content-panel {
+    padding: 40px 60px;
+  }
+  .folder-title-row h2 {
+    font-size: 28px;
+  }
+  .text-muted {
+    font-size: 15px;
+  }
+  .search-box {
+    width: 420px;
+    font-size: 16px;
+    padding: 12px 20px;
+    border-radius: 8px;
+  }
+  .btn {
+    padding: 12px 22px;
+    font-size: 16px;
+    border-radius: 10px;
+  }
+  .btn-sm {
+    padding: 8px 14px;
+    font-size: 14px;
+  }
+  .fills-grid {
+    grid-template-columns: repeat(auto-fill, minmax(440px, 1fr));
+    gap: 28px;
+  }
+  .fill-card {
+    padding: 24px;
+    border-radius: 12px;
+    gap: 16px;
+  }
+  .fill-card-title {
+    font-size: 18px;
+  }
+  .fill-card-body {
+    font-size: 15px;
+    padding: 14px 16px;
+    max-height: 160px;
+  }
+  .fill-card-footer {
+    font-size: 14px;
+  }
+  .modal-card {
+    width: 620px;
+    border-radius: 14px;
+  }
+  .modal-header h3 {
+    font-size: 18px;
+  }
+  .form-group label {
+    font-size: 14px;
+  }
+  .form-input, .form-textarea {
+    font-size: 16px;
+    padding: 12px 16px;
   }
 }

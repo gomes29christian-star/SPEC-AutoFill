@@ -834,91 +834,91 @@ export default function App() {
 
       {/* Top Navbar */}
       <header className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur-md sticky top-0 z-40">
-        <div className="max-w-[1700px] mx-auto px-3 sm:px-6 min-h-16 py-2.5 sm:py-0 flex flex-wrap lg:flex-nowrap items-center justify-between gap-3">
+        <div className="w-full max-w-[2600px] 3xl:max-w-[3400px] mx-auto px-3 sm:px-6 2xl:px-10 min-h-16 py-2.5 sm:py-3 flex flex-wrap items-center justify-between gap-3">
           {/* Logo with Easter Egg Double-Click */}
           <div
             onDoubleClick={handleLogoDoubleClick}
             title="Fillbox Autofill (Dê um duplo clique para inspecionar)"
             className="flex items-center gap-2.5 cursor-pointer select-none group shrink-0"
           >
-            <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center group-hover:border-amber-500/60 transition shadow-inner shrink-0">
-              <Zap className="w-4 h-4 sm:w-5 sm:h-5 text-amber-500 theme-stroke-icon group-hover:scale-110 transition" />
+            <div className="w-8 h-8 sm:w-9 sm:h-9 2xl:w-11 2xl:h-11 rounded-xl bg-zinc-800 border border-zinc-700 flex items-center justify-center group-hover:border-amber-500/60 transition shadow-inner shrink-0">
+              <Zap className="w-4 h-4 sm:w-5 sm:h-5 2xl:w-6 2xl:h-6 text-amber-500 theme-stroke-icon group-hover:scale-110 transition" />
             </div>
             <div>
               <div className="flex items-center gap-1.5 sm:gap-2">
-                <span className="font-extrabold text-base sm:text-lg tracking-tight theme-stroke-text text-zinc-100">
+                <span className="font-extrabold text-base sm:text-lg 2xl:text-xl tracking-tight theme-stroke-text text-zinc-100">
                   Fillbox
                 </span>
-                <span className="text-[9px] sm:text-[10px] uppercase font-mono tracking-wider font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
+                <span className="text-[9px] sm:text-[10px] 2xl:text-xs uppercase font-mono tracking-wider font-bold px-1.5 py-0.5 rounded bg-zinc-800 text-zinc-400 border border-zinc-700">
                   Firefox & Floorp
                 </span>
               </div>
-              <p className="text-[10px] text-zinc-400 hidden md:block">
+              <p className="text-[10px] 2xl:text-xs text-zinc-400 hidden md:block">
                 Autofill minimalista, local e de código aberto
               </p>
             </div>
           </div>
 
-          {/* Navigation Tabs - Scrollable horizontal container for mobile/narrow screens */}
-          <div className="order-3 lg:order-2 w-full lg:w-auto overflow-x-auto no-scrollbar py-1">
-            <nav className="flex items-center gap-1 sm:gap-1.5 flex-nowrap min-w-max">
+          {/* Navigation Tabs - Fluid container for all screens */}
+          <div className="order-3 lg:order-2 w-full lg:w-auto overflow-x-auto no-scrollbar py-1 shrink-0">
+            <nav className="flex items-center gap-1 sm:gap-1.5 2xl:gap-2.5 flex-nowrap min-w-max">
               <button
                 onClick={() => setActiveTab('simulator')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
                   activeTab === 'simulator'
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <Globe className="w-3.5 h-3.5 shrink-0" />
+                <Globe className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
                 <span>Simulador</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('manager')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
                   activeTab === 'manager'
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <Folder className="w-3.5 h-3.5 shrink-0" />
+                <Folder className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
                 <span>Gerenciador</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('tests')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
                   activeTab === 'tests'
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <Play className="w-3.5 h-3.5 shrink-0" />
+                <Play className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
                 <span>Testes (16)</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('install')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
                   activeTab === 'install'
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <Download className="w-3.5 h-3.5 shrink-0" />
+                <Download className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
                 <span>Instalar Extensão</span>
               </button>
 
               <button
                 onClick={() => setActiveTab('docs')}
-                className={`px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
+                className={`px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-semibold flex items-center gap-1.5 transition shrink-0 cursor-pointer ${
                   activeTab === 'docs'
                     ? 'bg-amber-500/15 text-amber-400 border border-amber-500/40'
                     : 'text-zinc-400 hover:text-zinc-200 hover:bg-zinc-800'
                 }`}
               >
-                <FileText className="w-3.5 h-3.5 shrink-0" />
+                <FileText className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 shrink-0" />
                 <span>Documentação</span>
               </button>
 
@@ -926,9 +926,9 @@ export default function App() {
               {secretAchievementsUnlocked && (
                 <button
                   onClick={() => setIsSecretModalOpen(true)}
-                  className="px-2.5 sm:px-3 py-1.5 rounded-lg text-xs font-bold flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 animate-pulse transition shrink-0 cursor-pointer"
+                  className="px-2.5 sm:px-3 2xl:px-4 py-1.5 2xl:py-2 rounded-lg text-xs 2xl:text-sm font-bold flex items-center gap-1.5 bg-gradient-to-r from-amber-500/20 to-amber-600/30 text-amber-300 border border-amber-500/40 hover:border-amber-400 animate-pulse transition shrink-0 cursor-pointer"
                 >
-                  <Trophy className="w-3.5 h-3.5 theme-stroke-icon text-amber-400 shrink-0" />
+                  <Trophy className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 theme-stroke-icon text-amber-400 shrink-0" />
                   <span className="theme-stroke-text">Conquistas</span>
                 </button>
               )}
@@ -937,15 +937,15 @@ export default function App() {
 
           {/* Theme Color Selector - Visible on all screen sizes */}
           <div className="order-2 lg:order-3 flex items-center gap-1.5 sm:gap-2 pl-2 sm:pl-3 border-l border-zinc-800 shrink-0">
-            <span className="text-[9px] sm:text-[10px] text-zinc-500 uppercase font-mono hidden xs:inline">Tema:</span>
-            <div className="flex items-center gap-1.5">
+            <span className="text-[9px] sm:text-[10px] 2xl:text-xs text-zinc-500 uppercase font-mono hidden xs:inline">Tema:</span>
+            <div className="flex items-center gap-1.5 2xl:gap-2">
               {THEMES.map((t) => (
                 <button
                   key={t.id}
                   onClick={() => setTheme(t)}
                   title={t.name}
                   style={{ backgroundColor: t.hex }}
-                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 rounded-full transition-transform cursor-pointer ${
+                  className={`w-3.5 h-3.5 sm:w-4 sm:h-4 2xl:w-5 2xl:h-5 rounded-full transition-transform cursor-pointer ${
                     theme.id === t.id
                       ? 'scale-125 ring-2 ring-white/80 ring-offset-1 ring-offset-zinc-950'
                       : 'opacity-70 hover:opacity-100 hover:scale-110'
@@ -957,8 +957,8 @@ export default function App() {
         </div>
       </header>
 
-      {/* Main Body with fluid maximum bounds */}
-      <main className="flex-1 max-w-[1700px] mx-auto w-full p-3 sm:p-6 lg:p-8">
+      {/* Main Body with fluid maximum bounds for ultra-wide and 4K */}
+      <main className="flex-1 w-full max-w-[2600px] 3xl:max-w-[3400px] mx-auto p-3 sm:p-6 lg:p-8 2xl:p-12">
         {/* ================= ABA 1: SIMULADOR DE PÁGINAS WEB ================= */}
         {activeTab === 'simulator' && (
           <div className="space-y-6 animate-fadeIn">
@@ -1252,16 +1252,16 @@ export default function App() {
                 </p>
               </div>
 
-              <div className="flex items-center gap-2 flex-wrap">
+              <div className="flex items-center gap-2 sm:gap-3 flex-wrap shrink-0">
                 <button
                   onClick={handleExportJSON}
-                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition"
+                  className="px-3 py-1.5 2xl:px-4 2xl:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs 2xl:text-sm font-semibold rounded-lg flex items-center gap-1.5 transition shrink-0 cursor-pointer"
                 >
-                  <Download className="w-3.5 h-3.5" /> Exportar JSON
+                  <Download className="w-3.5 h-3.5 2xl:w-4 2xl:h-4" /> Exportar JSON
                 </button>
 
-                <label className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer">
-                  <Upload className="w-3.5 h-3.5" /> Importar JSON
+                <label className="px-3 py-1.5 2xl:px-4 2xl:py-2 bg-zinc-800 hover:bg-zinc-700 text-zinc-200 text-xs 2xl:text-sm font-semibold rounded-lg flex items-center gap-1.5 transition cursor-pointer shrink-0">
+                  <Upload className="w-3.5 h-3.5 2xl:w-4 2xl:h-4" /> Importar JSON
                   <input
                     type="file"
                     accept=".json"
@@ -1272,36 +1272,36 @@ export default function App() {
 
                 <button
                   onClick={handleCreateFolder}
-                  className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center gap-1.5 transition"
+                  className="px-4 py-1.5 2xl:px-5 2xl:py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs 2xl:text-sm font-bold rounded-lg flex items-center gap-1.5 transition shrink-0 cursor-pointer"
                 >
-                  <Plus className="w-4 h-4" /> Nova Pasta
+                  <Plus className="w-4 h-4 2xl:w-5 2xl:h-5" /> Nova Pasta
                 </button>
               </div>
             </div>
 
-            {/* Layout em Duas Colunas com Escala Fluida */}
-            <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 gap-4 sm:gap-6">
+            {/* Layout em Duas Colunas com Escala Fluida para 4K e Ultra-Wide */}
+            <div className="grid grid-cols-1 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4 sm:gap-6 2xl:gap-8">
               {/* Coluna 1: Lista de Pastas */}
-              <div className="lg:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-3 sm:p-4 space-y-3">
+              <div className="lg:col-span-1 2xl:col-span-1 bg-zinc-900 border border-zinc-800 rounded-xl p-3 sm:p-4 2xl:p-6 space-y-3 2xl:space-y-4">
                 <div className="flex items-center justify-between pb-2 border-b border-zinc-800">
-                  <span className="text-xs font-bold text-zinc-400 uppercase tracking-wider">
+                  <span className="text-xs 2xl:text-sm font-bold text-zinc-400 uppercase tracking-wider">
                     Suas Pastas ({folders.length})
                   </span>
                   <button
                     onClick={handleCreateFolder}
-                    className="text-[11px] text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium lg:hidden"
+                    className="text-[11px] 2xl:text-xs text-amber-400 hover:text-amber-300 flex items-center gap-1 font-medium lg:hidden"
                   >
                     <Plus className="w-3 h-3" /> Nova
                   </button>
                 </div>
 
                 <div
-                  className="space-y-1.5 max-h-56 sm:max-h-[520px] overflow-y-auto"
+                  className="space-y-1.5 2xl:space-y-2.5 max-h-56 sm:max-h-[520px] 2xl:max-h-[720px] overflow-y-auto"
                   onContextMenu={handleFolderAreaContextMenu}
                   title="Clique com o botão direito para opções da pasta"
                 >
                   {folders.length === 0 ? (
-                    <div className="p-4 text-center text-xs text-zinc-500">
+                    <div className="p-4 text-center text-xs 2xl:text-sm text-zinc-500">
                       Nenhuma pasta criada. Clique com o botão direito para criar.
                     </div>
                   ) : (
@@ -1312,14 +1312,14 @@ export default function App() {
                           key={folder.id}
                           onClick={() => setSelectedFolderId(folder.id)}
                           onContextMenu={(e) => handleFolderContextMenu(e, folder)}
-                          className={`p-2.5 rounded-lg cursor-pointer flex items-center justify-between text-xs transition ${
+                          className={`p-2.5 2xl:p-3.5 rounded-lg cursor-pointer flex items-center justify-between text-xs 2xl:text-sm transition ${
                             isActive
                               ? 'bg-amber-500/15 border border-amber-500/40 text-amber-300 font-bold'
                               : 'hover:bg-zinc-800/60 text-zinc-300'
                           }`}
                         >
                           <span className="truncate pr-2">📁 {folder.name}</span>
-                          <span className="text-[10px] bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono shrink-0">
+                          <span className="text-[10px] 2xl:text-xs bg-zinc-800 px-1.5 py-0.5 rounded text-zinc-400 font-mono shrink-0">
                             {folder.fills.length}
                           </span>
                         </div>
@@ -1330,45 +1330,45 @@ export default function App() {
               </div>
 
               {/* Coluna 2: Fills da Pasta Selecionada */}
-              <div className="lg:col-span-3 xl:col-span-4 bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 space-y-6">
+              <div className="lg:col-span-3 xl:col-span-4 2xl:col-span-5 bg-zinc-900 border border-zinc-800 rounded-xl p-4 sm:p-6 2xl:p-8 space-y-6">
                 {currentFolder ? (
                   <>
                     {/* Header da Pasta */}
-                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-zinc-800">
+                    <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 pb-4 border-b border-zinc-800 flex-wrap">
                       <div>
                         <div className="flex items-center gap-2 flex-wrap">
-                          <h3 className="text-lg font-bold text-zinc-100 theme-stroke-text">
+                          <h3 className="text-lg 2xl:text-2xl font-bold text-zinc-100 theme-stroke-text">
                             {currentFolder.name}
                           </h3>
                           <button
                             onClick={handleRenameFolder}
                             title="Renomear Pasta"
-                            className="p-1 text-zinc-400 hover:text-zinc-100 rounded hover:bg-zinc-800 transition"
+                            className="p-1 2xl:p-1.5 text-zinc-400 hover:text-zinc-100 rounded hover:bg-zinc-800 transition"
                           >
-                            <Edit2 className="w-3.5 h-3.5" />
+                            <Edit2 className="w-3.5 h-3.5 2xl:w-4 2xl:h-4" />
                           </button>
                           <button
                             onClick={handleDeleteFolder}
                             title="Excluir Pasta"
-                            className="p-1 text-zinc-400 hover:text-red-400 rounded hover:bg-zinc-800 transition"
+                            className="p-1 2xl:p-1.5 text-zinc-400 hover:text-red-400 rounded hover:bg-zinc-800 transition"
                           >
-                            <Trash2 className="w-3.5 h-3.5" />
+                            <Trash2 className="w-3.5 h-3.5 2xl:w-4 2xl:h-4" />
                           </button>
                         </div>
-                        <p className="text-xs text-zinc-400 mt-0.5">
+                        <p className="text-xs 2xl:text-sm text-zinc-400 mt-0.5">
                           Criada em: {currentFolder.createdAt} • {currentFolder.fills.length} Fills cadastrados
                         </p>
                       </div>
 
-                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 w-full md:w-auto">
+                      <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 sm:gap-3 w-full md:w-auto shrink-0">
                         <div className="relative flex-1 sm:flex-initial">
-                          <Search className="w-3.5 h-3.5 text-zinc-500 absolute left-2.5 top-2.5 pointer-events-none" />
+                          <Search className="w-3.5 h-3.5 2xl:w-4 2xl:h-4 text-zinc-500 absolute left-2.5 top-2.5 2xl:top-3 pointer-events-none" />
                           <input
                             type="text"
                             value={managerSearch}
                             onChange={(e) => setManagerSearch(e.target.value)}
                             placeholder="Buscar Fills..."
-                            className="w-full sm:w-52 md:w-60 bg-zinc-950 border border-zinc-700 text-xs rounded-lg pl-8 pr-3 py-1.5 text-zinc-100 outline-none focus:border-amber-500"
+                            className="w-full sm:w-56 md:w-64 2xl:w-80 bg-zinc-950 border border-zinc-700 text-xs 2xl:text-sm rounded-lg pl-8 2xl:pl-9 pr-3 py-1.5 2xl:py-2 text-zinc-100 outline-none focus:border-amber-500"
                           />
                         </div>
 
@@ -1378,16 +1378,16 @@ export default function App() {
                             setFillNameInput('');
                             setFillContentInput('');
                           }}
-                          className="px-4 py-1.5 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs font-bold rounded-lg flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer"
+                          className="px-4 py-1.5 2xl:px-5 2xl:py-2 bg-amber-500 hover:bg-amber-400 text-zinc-950 text-xs 2xl:text-sm font-bold rounded-lg flex items-center justify-center gap-1.5 transition shrink-0 cursor-pointer"
                         >
-                          <Plus className="w-3.5 h-3.5" /> Novo Fill
+                          <Plus className="w-3.5 h-3.5 2xl:w-4 2xl:h-4" /> Novo Fill
                         </button>
                       </div>
                     </div>
 
-                    {/* Fills Grid com suporte a Botão Direito e grade adaptativa de 1 a 4 colunas */}
+                    {/* Fills Grid adaptativa para 4K e resoluções padrão */}
                     <div
-                      className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-3 sm:gap-4"
+                      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 2xl:grid-cols-4 3xl:grid-cols-5 gap-3 sm:gap-4 2xl:gap-6"
                       onContextMenu={handleFillAreaContextMenu}
                       title="Clique com o botão direito para opções de Fills"
                     >
