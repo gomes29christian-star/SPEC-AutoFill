@@ -98,31 +98,34 @@ export const FloatingSelector: React.FC<FloatingSelectorProps> = ({
   };
 
   if (targetRect) {
-    const cardWidth = 320;
-    const cardHeight = 260;
     const viewportWidth = window.innerWidth;
     const viewportHeight = window.innerHeight;
+    const cardWidth = Math.min(320, Math.max(260, viewportWidth - 24));
+    const cardHeight = Math.min(320, viewportHeight * 0.5);
 
     // Detecção inteligente de espaço vazio no viewport
     const spaceBelow = viewportHeight - targetRect.bottom;
     const spaceAbove = targetRect.top;
 
     let top: number;
-    if (spaceBelow >= cardHeight + 8 || spaceBelow >= spaceAbove) {
-      top = targetRect.bottom + 6;
+    if (spaceBelow >= 200 || spaceBelow >= spaceAbove) {
+      top = Math.min(targetRect.bottom + 6, viewportHeight - cardHeight - 12);
     } else {
       top = Math.max(12, targetRect.top - cardHeight - 6);
     }
 
     let left = targetRect.left;
-    if (left + cardWidth > viewportWidth - 16) {
-      left = Math.max(16, viewportWidth - cardWidth - 16);
+    if (left + cardWidth > viewportWidth - 12) {
+      left = Math.max(12, viewportWidth - cardWidth - 12);
+    } else if (left < 12) {
+      left = 12;
     }
 
     style = {
       ...style,
       left: `${Math.round(left)}px`,
       top: `${Math.round(top)}px`,
+      width: `${Math.round(cardWidth)}px`,
     };
   }
 
@@ -130,7 +133,7 @@ export const FloatingSelector: React.FC<FloatingSelectorProps> = ({
     <div
       ref={containerRef}
       style={style}
-      className="w-80 bg-zinc-900 border border-zinc-700/90 rounded-xl shadow-2xl shadow-black/80 overflow-hidden text-zinc-100 flex flex-col font-sans animate-scaleIn select-none"
+      className="w-full max-w-[320px] bg-zinc-900 border border-zinc-700/90 rounded-xl shadow-2xl shadow-black/80 overflow-hidden text-zinc-100 flex flex-col font-sans animate-scaleIn select-none"
     >
       {/* Header */}
       <div className="px-3 py-2 bg-zinc-800/90 border-b border-zinc-700/80 flex items-center justify-between">

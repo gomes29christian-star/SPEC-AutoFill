@@ -70,3 +70,12 @@
 ::-webkit-scrollbar-thumb:hover {
   background: rgba(161, 161, 170, 0.6);
 }
+
+/* Ocultar barra de rolagem em carrosséis/tabs mantendo scroll suave */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
