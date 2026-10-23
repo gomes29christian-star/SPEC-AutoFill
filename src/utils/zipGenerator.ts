@@ -300,27 +300,40 @@ export async function generateExtensionZipBlob(target: BrowserTarget = 'firefox'
  * Fillbox — Background Script
  */
 if (typeof importScripts === 'function') {
-  try { importScripts('../shared/storage.js'); } catch (e) {}
+  try { importScripts('/shared/storage.js'); } catch (e) {
+    try { importScripts('../shared/storage.js'); } catch (e2) {}
+  }
 }
 
 const ext = typeof chrome !== 'undefined' ? chrome : (typeof browser !== 'undefined' ? browser : null);
 
 function setupContextMenu() {
   if (!ext || !ext.contextMenus) return;
-  ext.contextMenus.removeAll(() => {
-    ext.contextMenus.create({ id: 'fillbox-root', title: 'Fillbox', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-bind-field', parentId: 'fillbox-root', title: '🔗 Vincular pasta a este campo', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-sep-1', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-add-folder', parentId: 'fillbox-root', title: '📁➕ Nova Pasta...', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-add-fill', parentId: 'fillbox-root', title: '🏷️➕ Novo Fill...', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-sep-2', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-delete-item', parentId: 'fillbox-root', title: '🗑️ Excluir Pasta ou Fill...', contexts: ['all'] });
-    ext.contextMenus.create({ id: 'fillbox-open-manager', parentId: 'fillbox-root', title: '⚙ Abrir Gerenciador Fillbox', contexts: ['all'] });
-  });
+  try {
+    ext.contextMenus.removeAll(() => {
+      const items = [
+        { id: 'fillbox-root', title: 'Fillbox', contexts: ['all'] },
+        { id: 'fillbox-bind-field', parentId: 'fillbox-root', title: '🔗 Vincular pasta a este campo', contexts: ['all'] },
+        { id: 'fillbox-sep-1', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] },
+        { id: 'fillbox-add-folder', parentId: 'fillbox-root', title: '📁➕ Nova Pasta...', contexts: ['all'] },
+        { id: 'fillbox-add-fill', parentId: 'fillbox-root', title: '🏷️➕ Novo Fill...', contexts: ['all'] },
+        { id: 'fillbox-sep-2', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] },
+        { id: 'fillbox-delete-item', parentId: 'fillbox-root', title: '🗑️ Excluir Pasta ou Fill...', contexts: ['all'] },
+        { id: 'fillbox-open-manager', parentId: 'fillbox-root', title: '⚙ Abrir Gerenciador Fillbox', contexts: ['all'] }
+      ];
+      items.forEach((item) => {
+        try {
+          ext.contextMenus.create(item, () => {
+            if (ext.runtime && ext.runtime.lastError) {}
+          });
+        } catch (err) {}
+      });
+    });
+  } catch (err) {}
 }
 
 if (ext && ext.runtime) {
-  ext.runtime.onInstalled.addListener(() => setupContextMenu());
+  if (ext.runtime.onInstalled) ext.runtime.onInstalled.addListener(() => setupContextMenu());
   if (ext.runtime.onStartup) ext.runtime.onStartup.addListener(() => setupContextMenu());
 }
 
@@ -337,17 +350,24 @@ if (ext && ext.contextMenus) {
     else if (info.menuItemId === 'fillbox-add-fill') action = 'OPEN_ADD_FILL_DIALOG';
     else if (info.menuItemId === 'fillbox-delete-item') action = 'OPEN_DELETE_DIALOG';
 
-    ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' }, async () => {
-      if (ext.runtime.lastError) {
+    const msg = { action, selectedText: info.selectionText || '' };
+    const options = (info && info.frameId !== undefined) ? { frameId: info.frameId } : {};
+
+    ext.tabs.sendMessage(tab.id, msg, options, async () => {
+      if (ext.runtime && ext.runtime.lastError) {
         try {
-          if (ext.scripting?.executeScript) {
+          if (ext.scripting && ext.scripting.executeScript) {
             await ext.scripting.executeScript({
               target: { tabId: tab.id, allFrames: true },
               files: ['shared/storage.js', 'content/field-identifier.js', 'content/filler.js', 'content/selector.js', 'content/content.js']
             });
             setTimeout(() => {
-              ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' });
-            }, 100);
+              ext.tabs.sendMessage(tab.id, msg, options, () => {
+                if (ext.runtime && ext.runtime.lastError && options.frameId !== undefined) {
+                  ext.tabs.sendMessage(tab.id, msg);
+                }
+              });
+            }, 120);
           }
         } catch (e) {}
       }
@@ -1052,18 +1072,18 @@ if (ext && ext.contextMenus) {
     }
 
     const norm = identifier.normalizeUrl(window.location.href);
-    const folders = await store.getFolders();
-
-    renderBindModal(target, norm, folders, allPageFields);
+    renderBindModal(target, norm, allPageFields);
   }
 
-  async function renderBindModal(initialTarget, norm, folders, allPageFields) {
+  async function renderBindModal(initialTarget, norm, allPageFields) {
     const oldModal = document.getElementById('fillbox-bind-modal');
     if (oldModal) oldModal.remove();
 
     let currentTarget = initialTarget;
     let signature = identifier.createFieldSignature(currentTarget);
     let existing = signature ? await store.findBindingForField(norm.origin, norm.path, signature) : null;
+    let selectedFolderId = existing && existing.folder ? existing.folder.id : null;
+    let isCreatingInlineFolder = false;
 
     const overlay = document.createElement('div');
     overlay.id = 'fillbox-bind-modal';
@@ -1085,6 +1105,15 @@ if (ext && ext.contextMenus) {
     async function updateModalView() {
       signature = identifier.createFieldSignature(currentTarget);
       existing = signature ? await store.findBindingForField(norm.origin, norm.path, signature) : null;
+      const folders = await store.getFolders();
+
+      if (!selectedFolderId) {
+        if (existing && existing.folder) {
+          selectedFolderId = existing.folder.id;
+        } else if (folders.length > 0) {
+          selectedFolderId = folders[0].id;
+        }
+      }
 
       const fieldOptionsHtml = allPageFields.map((f, idx) => {
         const isSel = f === currentTarget;
@@ -1095,15 +1124,15 @@ if (ext && ext.contextMenus) {
       }).join('');
 
       const folderOptions = folders.map((f) => {
-        const isSelected = existing && existing.folder && existing.folder.id === f.id;
+        const isSelected = f.id === selectedFolderId;
         return \\\`<option value="\${f.id}" \${isSelected ? 'selected' : ''}>📁 \${escapeHTML(f.name)} (\${(f.fills || []).length} Fills)</option>\\\`;
       }).join('');
 
       overlay.innerHTML = \`
-        <div style="background:#18181b; border:1px solid #3f3f46; border-radius:10px; width:410px; max-width:92vw; box-shadow:0 20px 40px rgba(0,0,0,0.8); overflow:hidden;">
+        <div style="background:#18181b; border:1px solid #3f3f46; border-radius:10px; width:430px; max-width:92vw; box-shadow:0 20px 40px rgba(0,0,0,0.8); overflow:hidden;">
           <div style="padding:12px 16px; background:#27272a; border-bottom:1px solid #3f3f46; display:flex; justify-content:space-between; align-items:center;">
             <strong style="color:#f59e0b; font-size:13px; display:flex; align-items:center; gap:6px;">
-              <span>⚡ Vincular Pasta Fill</span>
+              <span>⚡ Vincular Pasta a este Campo</span>
             </strong>
             <button type="button" id="fillbox-modal-close" style="background:transparent; border:none; color:#a1a1aa; cursor:pointer; font-size:16px;">✕</button>
           </div>
@@ -1111,7 +1140,7 @@ if (ext && ext.contextMenus) {
           <div style="padding:16px;">
             <div style="margin-bottom:12px;">
               <label style="display:block; font-size:11px; font-weight:600; color:#a1a1aa; margin-bottom:4px;">
-                1. Selecione o Campo Alvo na Página:
+                1. Campo Alvo Selecionado na Página:
               </label>
               <select id="fillbox-field-select" style="width:100%; box-sizing:border-box; background:#27272a; border:1px solid #3f3f46; border-radius:6px; color:#f4f4f5; padding:8px; font-size:12px; outline:none;">
                 \${fieldOptionsHtml}
@@ -1119,12 +1148,26 @@ if (ext && ext.contextMenus) {
             </div>
 
             <div style="margin-bottom:14px;">
-              <label style="display:block; font-size:11px; font-weight:600; color:#a1a1aa; margin-bottom:4px;">
-                2. Selecione a Pasta Fillbox para Vincular:
-              </label>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+                <label style="font-size:11px; font-weight:600; color:#a1a1aa;">
+                  2. Selecione a Pasta Fillbox para Vincular:
+                </label>
+                <button type="button" id="fillbox-inline-folder-toggle" style="background:transparent; color:#f59e0b; border:none; padding:0; font-size:11px; cursor:pointer; font-weight:600; text-decoration:underline;">
+                  + Criar Nova Pasta
+                </button>
+              </div>
               <select id="fillbox-folder-select" style="width:100%; box-sizing:border-box; background:#27272a; border:1px solid #3f3f46; border-radius:6px; color:#f4f4f5; padding:8px; font-size:12px; outline:none;">
-                \${folders.length === 0 ? '<option value="" disabled>Nenhuma pasta cadastrada</option>' : folderOptions}
+                \${folders.length === 0 ? '<option value="" disabled selected>Nenhuma pasta disponível (Crie uma abaixo)</option>' : folderOptions}
               </select>
+
+              <div id="fillbox-inline-folder-form" style="display:\${isCreatingInlineFolder ? 'block' : 'none'}; margin-top:8px; background:#27272a; padding:10px; border-radius:6px; border:1px solid #f59e0b;">
+                <label style="display:block; font-size:10px; font-weight:600; color:#f4f4f5; margin-bottom:4px;">Nome da Nova Pasta:</label>
+                <div style="display:flex; gap:6px;">
+                  <input type="text" id="fillbox-inline-folder-input" placeholder="Ex: Indicação Clínica, Receitas..." style="flex:1; background:#18181b; border:1px solid #3f3f46; border-radius:4px; color:#fff; padding:6px 8px; font-size:11px; outline:none;" />
+                  <button type="button" id="fillbox-inline-folder-save" style="background:#f59e0b; color:#18181b; border:none; padding:6px 12px; border-radius:4px; font-size:11px; font-weight:700; cursor:pointer;">Criar</button>
+                  <button type="button" id="fillbox-inline-folder-cancel" style="background:#3f3f46; color:#ccc; border:none; padding:6px 8px; border-radius:4px; font-size:11px; cursor:pointer;">✕</button>
+                </div>
+              </div>
             </div>
 
             <div style="font-size:11px; color:#a1a1aa; margin-bottom:16px; background:#27272a; padding:8px 10px; border-radius:6px; line-height:1.5;">
@@ -1160,7 +1203,58 @@ if (ext && ext.contextMenus) {
           const idx = parseInt(e.target.value, 10);
           if (allPageFields[idx]) {
             currentTarget = allPageFields[idx];
-            updateModalView();
+            selectedFolderId = null;
+            await updateModalView();
+          }
+        });
+      }
+
+      const folderSelect = overlay.querySelector('#fillbox-folder-select');
+      if (folderSelect) {
+        folderSelect.addEventListener('change', (e) => {
+          selectedFolderId = e.target.value;
+        });
+      }
+
+      const inlineToggle = overlay.querySelector('#fillbox-inline-folder-toggle');
+      if (inlineToggle) {
+        inlineToggle.addEventListener('click', () => {
+          isCreatingInlineFolder = !isCreatingInlineFolder;
+          const form = overlay.querySelector('#fillbox-inline-folder-form');
+          if (form) form.style.display = isCreatingInlineFolder ? 'block' : 'none';
+          if (isCreatingInlineFolder) {
+            const inp = overlay.querySelector('#fillbox-inline-folder-input');
+            if (inp) setTimeout(() => inp.focus(), 50);
+          }
+        });
+      }
+
+      const inlineCancel = overlay.querySelector('#fillbox-inline-folder-cancel');
+      if (inlineCancel) {
+        inlineCancel.addEventListener('click', () => {
+          isCreatingInlineFolder = false;
+          const form = overlay.querySelector('#fillbox-inline-folder-form');
+          if (form) form.style.display = 'none';
+        });
+      }
+
+      const inlineSave = overlay.querySelector('#fillbox-inline-folder-save');
+      if (inlineSave) {
+        inlineSave.addEventListener('click', async () => {
+          const inp = overlay.querySelector('#fillbox-inline-folder-input');
+          const val = (inp ? inp.value : '').trim();
+          if (!val) {
+            showToast('Digite um nome válido para a nova pasta.', 'warning');
+            return;
+          }
+          try {
+            const newFolder = await store.createFolder(val);
+            selectedFolderId = newFolder.id;
+            isCreatingInlineFolder = false;
+            showToast(\`Pasta "\${val}" criada e selecionada!\`, 'success');
+            await updateModalView();
+          } catch (err) {
+            showToast(err.message, 'error');
           }
         });
       }
@@ -1175,10 +1269,9 @@ if (ext && ext.contextMenus) {
       }
 
       overlay.querySelector('#fillbox-save-btn').addEventListener('click', async () => {
-        const select = overlay.querySelector('#fillbox-folder-select');
-        const folderId = select ? select.value : null;
+        const folderId = selectedFolderId || (folderSelect ? folderSelect.value : null);
         if (!folderId) {
-          showToast('Selecione uma pasta válida.', 'warning');
+          showToast('Selecione ou crie uma pasta para vincular.', 'warning');
           return;
         }
 
@@ -1194,7 +1287,8 @@ if (ext && ext.contextMenus) {
           fieldSignature: signature
         });
 
-        const selectedFolder = folders.find(f => f.id === folderId);
+        const currentFolders = await store.getFolders();
+        const selectedFolder = currentFolders.find(f => f.id === folderId);
         showToast(\`Campo vinculado com sucesso à pasta "\${selectedFolder ? selectedFolder.name : ''}"!\`, 'success');
         overlay.remove();
       });
