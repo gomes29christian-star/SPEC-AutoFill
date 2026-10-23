@@ -17,8 +17,11 @@
   document.addEventListener(
     'contextmenu',
     (e) => {
-      if (identifier && identifier.isFieldSupported(e.target)) {
-        lastContextTarget = e.target;
+      const field = identifier && identifier.resolveSupportedField
+        ? identifier.resolveSupportedField(e)
+        : (identifier && identifier.isFieldSupported(e.target) ? e.target : null);
+      if (field) {
+        lastContextTarget = field;
       }
     },
     true
@@ -28,13 +31,16 @@
   document.addEventListener(
     'click',
     async (e) => {
-      const target = e.target;
-      if (!target || !identifier || !identifier.isFieldSupported(target)) {
+      // Se o clique foi dentro do próprio seletor flutuante ou modal, não reabre
+      if (e.target && (e.target.closest('#fillbox-floating-container') || e.target.closest('#fillbox-bind-modal'))) {
         return;
       }
 
-      // Se o clique foi dentro do próprio seletor flutuante ou modal, não reabre
-      if (e.target.closest('#fillbox-floating-container') || e.target.closest('#fillbox-bind-modal')) {
+      const target = identifier && identifier.resolveSupportedField
+        ? identifier.resolveSupportedField(e)
+        : e.target;
+
+      if (!target || !identifier || !identifier.isFieldSupported(target)) {
         return;
       }
 
@@ -71,8 +77,10 @@
   if (runtime && runtime.onMessage) {
     runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.action === 'OPEN_BIND_DIALOG') {
-        const target = lastContextTarget || document.activeElement;
-        handleOpenBindDialog(target);
+        const resolved = (identifier && identifier.resolveSupportedField ? identifier.resolveSupportedField(lastContextTarget) : lastContextTarget)
+          || (identifier && identifier.resolveSupportedField ? identifier.resolveSupportedField(document.activeElement) : document.activeElement)
+          || (identifier && identifier.getDeepActiveElement ? identifier.getDeepActiveElement() : null);
+        handleOpenBindDialog(resolved);
         sendResponse({ received: true });
         return true;
       }
@@ -103,9 +111,12 @@
   }
 
   // Abre diálogo discreto na página para vincular ou remover vínculo da pasta
-  async function handleOpenBindDialog(target) {
-    if (!target || !identifier.isFieldSupported(target)) {
-      showToast('Fillbox: Este campo não é editável ou é um campo de senha protegido.', 'error');
+  async function handleOpenBindDialog(rawTarget) {
+    const target = (identifier && identifier.resolveSupportedField ? identifier.resolveSupportedField(rawTarget) : rawTarget)
+      || (identifier && identifier.getDeepActiveElement ? identifier.getDeepActiveElement() : null);
+
+    if (!target || !identifier || !identifier.isFieldSupported(target)) {
+      showToast('Fillbox: Clique com o botão direito diretamente sobre um campo de texto editável para vincular.', 'error');
       return;
     }
 
