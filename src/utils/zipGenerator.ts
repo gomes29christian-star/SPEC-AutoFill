@@ -20,7 +20,12 @@ export async function generateExtensionZipBlob(target: BrowserTarget = 'firefox'
     permissions: [
       'storage',
       'contextMenus',
-      'activeTab'
+      'activeTab',
+      'scripting'
+    ],
+    host_permissions: [
+      'http://*/*',
+      'https://*/*'
     ],
     action: {
       default_popup: 'popup/popup.html',
@@ -38,6 +43,8 @@ export async function generateExtensionZipBlob(target: BrowserTarget = 'firefox'
     content_scripts: [
       {
         matches: ['http://*/*', 'https://*/*'],
+        all_frames: true,
+        match_about_blank: true,
         js: [
           'shared/storage.js',
           'content/field-identifier.js',
@@ -301,13 +308,13 @@ const ext = typeof chrome !== 'undefined' ? chrome : (typeof browser !== 'undefi
 function setupContextMenu() {
   if (!ext || !ext.contextMenus) return;
   ext.contextMenus.removeAll(() => {
-    ext.contextMenus.create({ id: 'fillbox-root', title: 'Fillbox', contexts: ['editable', 'selection', 'page'] });
-    ext.contextMenus.create({ id: 'fillbox-bind-field', parentId: 'fillbox-root', title: '🔗 Vincular pasta a este campo', contexts: ['editable'] });
-    ext.contextMenus.create({ id: 'fillbox-sep-1', parentId: 'fillbox-root', type: 'separator', contexts: ['editable', 'selection', 'page'] });
-    ext.contextMenus.create({ id: 'fillbox-add-folder', parentId: 'fillbox-root', title: '📁➕ Nova Pasta...', contexts: ['editable', 'page', 'selection'] });
-    ext.contextMenus.create({ id: 'fillbox-add-fill', parentId: 'fillbox-root', title: '🏷️➕ Novo Fill...', contexts: ['editable', 'selection'] });
-    ext.contextMenus.create({ id: 'fillbox-sep-2', parentId: 'fillbox-root', type: 'separator', contexts: ['editable', 'selection', 'page'] });
-    ext.contextMenus.create({ id: 'fillbox-delete-item', parentId: 'fillbox-root', title: '🗑️ Excluir Pasta ou Fill...', contexts: ['editable', 'page', 'selection'] });
+    ext.contextMenus.create({ id: 'fillbox-root', title: 'Fillbox', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-bind-field', parentId: 'fillbox-root', title: '🔗 Vincular pasta a este campo', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-sep-1', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-add-folder', parentId: 'fillbox-root', title: '📁➕ Nova Pasta...', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-add-fill', parentId: 'fillbox-root', title: '🏷️➕ Novo Fill...', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-sep-2', parentId: 'fillbox-root', type: 'separator', contexts: ['all'] });
+    ext.contextMenus.create({ id: 'fillbox-delete-item', parentId: 'fillbox-root', title: '🗑️ Excluir Pasta ou Fill...', contexts: ['all'] });
     ext.contextMenus.create({ id: 'fillbox-open-manager', parentId: 'fillbox-root', title: '⚙ Abrir Gerenciador Fillbox', contexts: ['all'] });
   });
 }
@@ -330,7 +337,21 @@ if (ext && ext.contextMenus) {
     else if (info.menuItemId === 'fillbox-add-fill') action = 'OPEN_ADD_FILL_DIALOG';
     else if (info.menuItemId === 'fillbox-delete-item') action = 'OPEN_DELETE_DIALOG';
 
-    ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' });
+    ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' }, async () => {
+      if (ext.runtime.lastError) {
+        try {
+          if (ext.scripting?.executeScript) {
+            await ext.scripting.executeScript({
+              target: { tabId: tab.id, allFrames: true },
+              files: ['shared/storage.js', 'content/field-identifier.js', 'content/filler.js', 'content/selector.js', 'content/content.js']
+            });
+            setTimeout(() => {
+              ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' });
+            }, 100);
+          }
+        } catch (e) {}
+      }
+    });
   });
 }
 `;

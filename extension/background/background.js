@@ -13,15 +13,15 @@ function setupContextMenu() {
     ext.contextMenus.create({
       id: 'fillbox-root',
       title: 'Fillbox',
-      contexts: ['editable', 'selection', 'page']
+      contexts: ['all']
     });
 
-    // 1. Vincular campo (em campos editáveis)
+    // 1. Vincular campo (em qualquer elemento/campo)
     ext.contextMenus.create({
       id: 'fillbox-bind-field',
       parentId: 'fillbox-root',
       title: '🔗 Vincular pasta a este campo',
-      contexts: ['editable']
+      contexts: ['all']
     });
 
     // Separador
@@ -29,7 +29,7 @@ function setupContextMenu() {
       id: 'fillbox-sep-1',
       parentId: 'fillbox-root',
       type: 'separator',
-      contexts: ['editable', 'selection', 'page']
+      contexts: ['all']
     });
 
     // 2. Adicionar Pasta
@@ -37,7 +37,7 @@ function setupContextMenu() {
       id: 'fillbox-add-folder',
       parentId: 'fillbox-root',
       title: '📁➕ Nova Pasta...',
-      contexts: ['editable', 'page', 'selection']
+      contexts: ['all']
     });
 
     // 3. Adicionar Fill (inclusive a partir do texto selecionado!)
@@ -45,7 +45,7 @@ function setupContextMenu() {
       id: 'fillbox-add-fill',
       parentId: 'fillbox-root',
       title: '🏷️➕ Novo Fill...',
-      contexts: ['editable', 'selection']
+      contexts: ['all']
     });
 
     // Separador
@@ -53,7 +53,7 @@ function setupContextMenu() {
       id: 'fillbox-sep-2',
       parentId: 'fillbox-root',
       type: 'separator',
-      contexts: ['editable', 'selection', 'page']
+      contexts: ['all']
     });
 
     // 4. Deletar Pasta ou Fill
@@ -61,7 +61,7 @@ function setupContextMenu() {
       id: 'fillbox-delete-item',
       parentId: 'fillbox-root',
       title: '🗑️ Excluir Pasta ou Fill...',
-      contexts: ['editable', 'page', 'selection']
+      contexts: ['all']
     });
 
     // 5. Gerenciador Completo
@@ -77,6 +77,12 @@ function setupContextMenu() {
 ext.runtime.onInstalled.addListener(() => {
   setupContextMenu();
 });
+
+if (ext.runtime.onStartup) {
+  ext.runtime.onStartup.addListener(() => {
+    setupContextMenu();
+  });
+}
 
 // Ações ao clicar no menu de contexto
 ext.contextMenus.onClicked.addListener((info, tab) => {
@@ -102,9 +108,22 @@ ext.contextMenus.onClicked.addListener((info, tab) => {
       action,
       selectedText: info.selectionText || ''
     },
-    (res) => {
+    async (res) => {
       if (ext.runtime.lastError) {
-        console.warn('[Fillbox Background] Comunicação com a aba:', ext.runtime.lastError.message);
+        console.warn('[Fillbox Background] Reinjando scripts na aba:', ext.runtime.lastError.message);
+        try {
+          if (ext.scripting && ext.scripting.executeScript) {
+            await ext.scripting.executeScript({
+              target: { tabId: tab.id, allFrames: true },
+              files: ['shared/storage.js', 'content/field-identifier.js', 'content/filler.js', 'content/selector.js', 'content/content.js']
+            });
+            setTimeout(() => {
+              ext.tabs.sendMessage(tab.id, { action, selectedText: info.selectionText || '' });
+            }, 100);
+          }
+        } catch (err) {
+          console.error('[Fillbox Background] Falha na injeção de fallback:', err);
+        }
       }
     }
   );
