@@ -6,23 +6,23 @@
 (function () {
   'use strict';
 
-  // Guarda o último elemento clicado com o botão direito para o context menu
+  // Guarda o último elemento e coordenadas clicadas com o botão direito para o context menu
   let lastContextTarget = null;
+  let lastContextCoords = null;
   const store = window.FillboxStorage ? window.FillboxStorage.store : null;
   const selector = window.FillboxSelector ? window.FillboxSelector.selectorInstance : null;
   const identifier = window.FieldIdentifier;
   const filler = window.FillboxFiller;
 
-  // Rastreia o elemento do clique com botão direito
+  // Rastreia o elemento e posição do clique com botão direito
   document.addEventListener(
     'contextmenu',
     (e) => {
+      lastContextCoords = { x: e.clientX, y: e.clientY };
       const field = identifier && identifier.resolveSupportedField
         ? identifier.resolveSupportedField(e)
         : (identifier && identifier.isFieldSupported(e.target) ? e.target : null);
-      if (field) {
-        lastContextTarget = field;
-      }
+      lastContextTarget = field || e.target;
     },
     true
   );
@@ -110,33 +110,55 @@
     });
   }
 
-  // Abre diálogo discreto na página para vincular ou remover vínculo da pasta
+  // Abre diálogo de vinculação permitindo escolher o campo e a pasta
   async function handleOpenBindDialog(rawTarget) {
-    const target = (identifier && identifier.resolveSupportedField ? identifier.resolveSupportedField(rawTarget) : rawTarget)
-      || (identifier && identifier.getDeepActiveElement ? identifier.getDeepActiveElement() : null);
+    let target = (identifier && identifier.resolveSupportedField ? identifier.resolveSupportedField(rawTarget) : rawTarget);
 
     if (!target || !identifier || !identifier.isFieldSupported(target)) {
-      showToast('Fillbox: Clique com o botão direito diretamente sobre um campo de texto editável para vincular.', 'error');
+      if (lastContextCoords) {
+        try {
+          const elAtPoint = document.elementFromPoint(lastContextCoords.x, lastContextCoords.y);
+          if (elAtPoint) {
+            target = identifier.resolveSupportedField(elAtPoint);
+          }
+        } catch (e) {}
+      }
+    }
+
+    if (!target || !identifier || !identifier.isFieldSupported(target)) {
+      target = identifier && identifier.getDeepActiveElement ? identifier.getDeepActiveElement() : null;
+    }
+
+    const allPageFields = (identifier && identifier.findAllEditableFields)
+      ? identifier.findAllEditableFields()
+      : [];
+
+    if ((!target || !identifier.isFieldSupported(target)) && allPageFields.length > 0) {
+      target = allPageFields[0];
+    }
+
+    if (!target || !identifier || !identifier.isFieldSupported(target)) {
+      showToast('Fillbox: Nenhum campo de texto editável encontrado nesta página.', 'error');
       return;
     }
 
-    const signature = identifier.createFieldSignature(target);
-    if (!signature) {
-      showToast('Fillbox: Não foi possível identificar este campo de forma segura e confiável.', 'warning');
-      return;
+    if (!allPageFields.includes(target)) {
+      allPageFields.unshift(target);
     }
 
     const norm = identifier.normalizeUrl(window.location.href);
-    const existing = await store.findBindingForField(norm.origin, norm.path, signature);
     const folders = await store.getFolders();
 
-    renderBindModal(target, signature, norm, existing, folders);
+    renderBindModal(target, norm, folders, allPageFields);
   }
 
-  function renderBindModal(target, signature, norm, existing, folders) {
-    // Remove modal anterior se houver
+  async function renderBindModal(initialTarget, norm, folders, allPageFields) {
     const oldModal = document.getElementById('fillbox-bind-modal');
     if (oldModal) oldModal.remove();
+
+    let currentTarget = initialTarget;
+    let signature = identifier.createFieldSignature(currentTarget);
+    let existing = signature ? await store.findBindingForField(norm.origin, norm.path, signature) : null;
 
     const overlay = document.createElement('div');
     overlay.id = 'fillbox-bind-modal';
@@ -144,8 +166,8 @@
       all: initial;
       position: fixed;
       inset: 0;
-      background: rgba(0, 0, 0, 0.7);
-      backdrop-filter: blur(2px);
+      background: rgba(0, 0, 0, 0.75);
+      backdrop-filter: blur(3px);
       z-index: 2147483647;
       display: flex;
       align-items: center;
@@ -155,86 +177,127 @@
       color: #e4e4e7;
     `;
 
-    const folderOptions = folders.map((f) => {
-      const isSelected = existing && existing.folder && existing.folder.id === f.id;
-      return `<option value="${f.id}" ${isSelected ? 'selected' : ''}>📁 ${escapeHTML(f.name)} (${(f.fills || []).length} Fills)</option>`;
-    }).join('');
+    async function updateModalView() {
+      signature = identifier.createFieldSignature(currentTarget);
+      existing = signature ? await store.findBindingForField(norm.origin, norm.path, signature) : null;
 
-    overlay.innerHTML = `
-      <div style="background:#18181b; border:1px solid #3f3f46; border-radius:10px; width:380px; max-width:92vw; box-shadow:0 20px 40px rgba(0,0,0,0.8); overflow:hidden;">
-        <div style="padding:12px 16px; background:#27272a; border-bottom:1px solid #3f3f46; display:flex; justify-content:space-between; align-items:center;">
-          <strong style="color:#f59e0b; font-size:13px; display:flex; align-items:center; gap:6px;">
-            <span>⚡ Vincular Pasta Fill</span>
-          </strong>
-          <button type="button" id="fillbox-modal-close" style="background:transparent; border:none; color:#a1a1aa; cursor:pointer; font-size:16px;">✕</button>
-        </div>
+      const fieldOptionsHtml = allPageFields.map((f, idx) => {
+        const isSel = f === currentTarget;
+        const label = identifier.getAssociatedLabelText ? identifier.getAssociatedLabelText(f) : '';
+        const tag = f.tagName.toLowerCase();
+        const displayLabel = label ? `${label} (${tag}${f.id ? '#' + f.id : ''})` : `Campo ${idx + 1} (${tag}${f.id ? '#' + f.id : ''})`;
+        return `<option value="${idx}" ${isSel ? 'selected' : ''}>📝 ${escapeHTML(displayLabel)}</option>`;
+      }).join('');
 
-        <div style="padding:16px;">
-          <div style="font-size:11px; color:#a1a1aa; margin-bottom:12px; background:#27272a; padding:8px 10px; border-radius:6px; line-height:1.5;">
-            <div><strong>Página:</strong> ${escapeHTML(norm.path)}</div>
-            <div><strong>Estratégia:</strong> ${escapeHTML(signature.strategy)}</div>
-            ${signature.name ? `<div><strong>Nome do campo:</strong> ${escapeHTML(signature.name)}</div>` : ''}
-            ${signature.labelText ? `<div><strong>Rótulo:</strong> ${escapeHTML(signature.labelText)}</div>` : ''}
+      const folderOptions = folders.map((f) => {
+        const isSelected = existing && existing.folder && existing.folder.id === f.id;
+        return `<option value="${f.id}" ${isSelected ? 'selected' : ''}>📁 ${escapeHTML(f.name)} (${(f.fills || []).length} Fills)</option>`;
+      }).join('');
+
+      overlay.innerHTML = `
+        <div style="background:#18181b; border:1px solid #3f3f46; border-radius:10px; width:410px; max-width:92vw; box-shadow:0 20px 40px rgba(0,0,0,0.8); overflow:hidden;">
+          <div style="padding:12px 16px; background:#27272a; border-bottom:1px solid #3f3f46; display:flex; justify-content:space-between; align-items:center;">
+            <strong style="color:#f59e0b; font-size:13px; display:flex; align-items:center; gap:6px;">
+              <span>⚡ Vincular Pasta Fill</span>
+            </strong>
+            <button type="button" id="fillbox-modal-close" style="background:transparent; border:none; color:#a1a1aa; cursor:pointer; font-size:16px;">✕</button>
           </div>
 
-          <label style="display:block; font-weight:600; margin-bottom:6px; color:#f4f4f5;">
-            Selecione a Pasta para este campo:
-          </label>
-          <select id="fillbox-folder-select" style="width:100%; background:#27272a; border:1px solid #3f3f46; border-radius:6px; color:#f4f4f5; padding:8px; font-size:12px; outline:none; margin-bottom:16px;">
-            ${folders.length === 0 ? '<option value="" disabled>Nenhuma pasta encontrada</option>' : folderOptions}
-          </select>
-
-          <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
-            <div>
-              ${
-                existing
-                  ? `<button type="button" id="fillbox-unbind-btn" style="background:#ef4444; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:600;">Remover Vínculo</button>`
-                  : ''
-              }
+          <div style="padding:16px;">
+            <div style="margin-bottom:12px;">
+              <label style="display:block; font-size:11px; font-weight:600; color:#a1a1aa; margin-bottom:4px;">
+                1. Selecione o Campo Alvo na Página:
+              </label>
+              <select id="fillbox-field-select" style="width:100%; box-sizing:border-box; background:#27272a; border:1px solid #3f3f46; border-radius:6px; color:#f4f4f5; padding:8px; font-size:12px; outline:none;">
+                ${fieldOptionsHtml}
+              </select>
             </div>
-            <div style="display:flex; gap:8px;">
-              <button type="button" id="fillbox-cancel-btn" style="background:#3f3f46; color:#d4d4d8; border:none; padding:7px 12px; border-radius:6px; font-size:11px; cursor:pointer;">Cancelar</button>
-              <button type="button" id="fillbox-save-btn" style="background:#f59e0b; color:#18181b; border:none; padding:7px 14px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">Salvar Vínculo</button>
+
+            <div style="margin-bottom:14px;">
+              <label style="display:block; font-size:11px; font-weight:600; color:#a1a1aa; margin-bottom:4px;">
+                2. Selecione a Pasta Fillbox para Vincular:
+              </label>
+              <select id="fillbox-folder-select" style="width:100%; box-sizing:border-box; background:#27272a; border:1px solid #3f3f46; border-radius:6px; color:#f4f4f5; padding:8px; font-size:12px; outline:none;">
+                ${folders.length === 0 ? '<option value="" disabled>Nenhuma pasta cadastrada</option>' : folderOptions}
+              </select>
+            </div>
+
+            <div style="font-size:11px; color:#a1a1aa; margin-bottom:16px; background:#27272a; padding:8px 10px; border-radius:6px; line-height:1.5;">
+              <div><strong>Página:</strong> ${escapeHTML(norm.path)}</div>
+              <div><strong>Identificação do Campo:</strong> ${escapeHTML(signature ? signature.strategy : 'N/A')}</div>
+              ${signature && signature.labelText ? `<div><strong>Rótulo/Nome:</strong> ${escapeHTML(signature.labelText)}</div>` : ''}
+              ${existing ? `<div style="color:#10b981; font-weight:600; margin-top:2px;">✓ Já vinculado à pasta: ${escapeHTML(existing.folder.name)}</div>` : '<div style="color:#71717a; margin-top:2px;">Campo sem vínculo atual</div>'}
+            </div>
+
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+              <div>
+                ${
+                  existing
+                    ? `<button type="button" id="fillbox-unbind-btn" style="background:#ef4444; color:#fff; border:none; padding:7px 12px; border-radius:6px; font-size:11px; cursor:pointer; font-weight:600;">Remover Vínculo</button>`
+                    : ''
+                }
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" id="fillbox-cancel-btn" style="background:#3f3f46; color:#d4d4d8; border:none; padding:7px 12px; border-radius:6px; font-size:11px; cursor:pointer;">Cancelar</button>
+                <button type="button" id="fillbox-save-btn" style="background:#f59e0b; color:#18181b; border:none; padding:7px 14px; border-radius:6px; font-size:11px; font-weight:700; cursor:pointer;">Salvar Vínculo</button>
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    `;
+      `;
 
-    document.body.appendChild(overlay);
+      // Event Listeners
+      overlay.querySelector('#fillbox-modal-close').addEventListener('click', () => overlay.remove());
+      overlay.querySelector('#fillbox-cancel-btn').addEventListener('click', () => overlay.remove());
 
-    const closeModal = () => overlay.remove();
+      const fieldSelect = overlay.querySelector('#fillbox-field-select');
+      if (fieldSelect) {
+        fieldSelect.addEventListener('change', async (e) => {
+          const idx = parseInt(e.target.value, 10);
+          if (allPageFields[idx]) {
+            currentTarget = allPageFields[idx];
+            updateModalView();
+          }
+        });
+      }
 
-    overlay.querySelector('#fillbox-modal-close').addEventListener('click', closeModal);
-    overlay.querySelector('#fillbox-cancel-btn').addEventListener('click', closeModal);
+      const unbindBtn = overlay.querySelector('#fillbox-unbind-btn');
+      if (unbindBtn && existing) {
+        unbindBtn.addEventListener('click', async () => {
+          await store.removeBinding(existing.binding.id);
+          showToast('Vínculo removido deste campo com sucesso.', 'info');
+          overlay.remove();
+        });
+      }
 
-    const unbindBtn = overlay.querySelector('#fillbox-unbind-btn');
-    if (unbindBtn && existing) {
-      unbindBtn.addEventListener('click', async () => {
-        await store.removeBinding(existing.binding.id);
-        showToast('Vínculo removido deste campo com sucesso.', 'info');
-        closeModal();
+      overlay.querySelector('#fillbox-save-btn').addEventListener('click', async () => {
+        const select = overlay.querySelector('#fillbox-folder-select');
+        const folderId = select ? select.value : null;
+        if (!folderId) {
+          showToast('Selecione uma pasta válida.', 'warning');
+          return;
+        }
+
+        if (!signature) {
+          showToast('Não foi possível gerar assinatura para este campo.', 'error');
+          return;
+        }
+
+        await store.bindField({
+          folderId,
+          origin: norm.origin,
+          path: norm.path,
+          fieldSignature: signature
+        });
+
+        const selectedFolder = folders.find(f => f.id === folderId);
+        showToast(`Campo vinculado com sucesso à pasta "${selectedFolder ? selectedFolder.name : ''}"!`, 'success');
+        overlay.remove();
       });
     }
 
-    overlay.querySelector('#fillbox-save-btn').addEventListener('click', async () => {
-      const select = overlay.querySelector('#fillbox-folder-select');
-      const folderId = select.value;
-      if (!folderId) {
-        showToast('Selecione uma pasta válida.', 'warning');
-        return;
-      }
-
-      await store.bindField({
-        folderId,
-        origin: norm.origin,
-        path: norm.path,
-        fieldSignature: signature
-      });
-
-      showToast('Campo vinculado com sucesso! Clique nele para abrir os Fills.', 'success');
-      closeModal();
-    });
+    document.body.appendChild(overlay);
+    await updateModalView();
   }
 
   // Diálogo para Adicionar Nova Pasta via Botão Direito

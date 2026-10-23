@@ -161,7 +161,7 @@
     return dynamicPatterns.some((pattern) => pattern.test(id.trim()));
   }
 
-  // Extrai label associado ao campo
+  // Extrai label associado ao campo de forma robusta
   function getAssociatedLabelText(element) {
     try {
       const parentLabel = element.closest && element.closest('label');
@@ -175,255 +175,57 @@
           return (matchingLabel.textContent || '').trim().replace(/\s+/g, ' ').substring(0, 50);
         }
       }
-      return element.getAttribute('aria-label') || element.getAttribute('placeholder') || '';
+      const directAttr = element.getAttribute('aria-label') || element.getAttribute('placeholder') || element.getAttribute('title') || element.getAttribute('name');
+      if (directAttr) return directAttr;
+
+      const prev = element.previousElementSibling;
+      if (prev && prev.textContent && prev.textContent.trim().length > 0 && prev.textContent.trim().length < 60) {
+        return prev.textContent.trim().replace(/\s+/g, ' ');
+      }
+
+      const parent = element.parentElement;
+      if (parent) {
+        const labelEl = parent.querySelector('label, .label, title, header, strong, span, legend, th, td');
+        if (labelEl && labelEl !== element && labelEl.textContent) {
+          return labelEl.textContent.trim().replace(/\s+/g, ' ').substring(0, 50);
+        }
+      }
+
+      return element.tagName.toLowerCase() + (element.id ? `#${element.id}` : '');
     } catch (e) {
       return '';
     }
   }
 
-  // Gera a assinatura de identificação em camadas do campo
-  function createFieldSignature(element) {
-    const field = resolveSupportedField(element);
-    if (!field || !isFieldSupported(field)) {
-      return null;
-    }
+  // Localiza todos os campos editáveis suportados presentes na página (incluindo Shadow DOM)
+  function findAllEditableFields(rootNode = document) {
+    const results = [];
 
-    const doc = field.ownerDocument || document;
-    const tagName = field.tagName.toLowerCase();
-    const isContentEditable = field.isContentEditable || field.getAttribute('contenteditable') === 'true' || field.getAttribute('contenteditable') === '';
-    const inputType = field.getAttribute('type') || (tagName === 'textarea' ? 'textarea' : (isContentEditable ? 'contenteditable' : 'text'));
-
-    const signature = {
-      tagName,
-      type: inputType,
-      strategy: 'unknown',
-      id: null,
-      name: null,
-      formId: null,
-      formName: null,
-      labelText: getAssociatedLabelText(field),
-      placeholder: field.getAttribute('placeholder') || null,
-      ariaLabel: field.getAttribute('aria-label') || null,
-      dataTestId: field.getAttribute('data-testid') || field.getAttribute('data-test') || null,
-      autocomplete: field.getAttribute('autocomplete') || null,
-      containerTag: null,
-      selector: null
-    };
-
-    const form = field.closest && field.closest('form');
-    if (form) {
-      if (form.id && !isDynamicId(form.id)) signature.formId = form.id;
-      if (form.getAttribute('name')) signature.formName = form.getAttribute('name');
-    }
-
-    // Detecta container de Web Component (ex: ytd-searchbox, ytd-commentbox, etc.)
-    const customContainer = field.closest && field.closest('ytd-searchbox, ytd-comments, ytd-commentbox, ytd-comment-simplebox-renderer, [role="search"], [role="form"]');
-    if (customContainer) {
-      signature.containerTag = customContainer.tagName.toLowerCase();
-    }
-
-    // Camada 1: ID exclusivo ou estável
-    if (field.id && !isDynamicId(field.id)) {
-      signature.id = field.id;
+    function scan(node) {
+      if (!node) return;
       try {
-        const matches = doc.querySelectorAll(`#${CSS.escape(field.id)}`);
-        if (matches.length === 1) {
-          signature.strategy = 'unique_id';
-          return signature;
-        } else if (matches.length > 1) {
-          // ID duplicado (comum em YouTube desktop vs mobile header): escopa com container
-          if (signature.containerTag) {
-            signature.strategy = 'container_scoped_id';
-            signature.selector = `${signature.containerTag} #${CSS.escape(field.id)}`;
-            return signature;
+        const query = 'input:not([type="password"]):not([type="hidden"]):not([type="submit"]):not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="image"]):not([type="reset"]):not([type="range"]):not([type="color"]), textarea, [contenteditable="true"], [contenteditable=""], [role="textbox"]';
+        const list = node.querySelectorAll ? node.querySelectorAll(query) : [];
+        for (let i = 0; i < list.length; i++) {
+          const el = list[i];
+          if (isFieldSupported(el) && !results.includes(el)) {
+            results.push(el);
           }
-          if (signature.formId) {
-            signature.strategy = 'form_scoped_id';
-            signature.selector = `#${CSS.escape(signature.formId)} #${CSS.escape(field.id)}`;
-            return signature;
+        }
+      } catch (e) {}
+
+      try {
+        const all = node.querySelectorAll ? node.querySelectorAll('*') : [];
+        for (let i = 0; i < all.length; i++) {
+          if (all[i].shadowRoot) {
+            scan(all[i].shadowRoot);
           }
         }
       } catch (e) {}
     }
 
-    // Camada 2: data-testid estável
-    if (signature.dataTestId) {
-      try {
-        const matches = doc.querySelectorAll(`[data-testid="${CSS.escape(signature.dataTestId)}"]`);
-        if (matches.length === 1) {
-          signature.strategy = 'data_testid';
-          return signature;
-        }
-      } catch (e) {}
-    }
-
-    // Camada 3: Name único dentro do formulário ou página
-    const name = field.getAttribute('name');
-    if (name) {
-      signature.name = name;
-      const formScope = form || doc;
-      try {
-        const matches = formScope.querySelectorAll(`[name="${CSS.escape(name)}"]`);
-        if (matches.length === 1) {
-          signature.strategy = form ? 'form_scoped_name' : 'unique_name';
-          return signature;
-        }
-      } catch (e) {}
-    }
-
-    // Camada 4: Autocomplete semântico
-    if (signature.autocomplete && signature.autocomplete !== 'off' && signature.autocomplete !== 'on') {
-      signature.strategy = 'semantic_autocomplete';
-      return signature;
-    }
-
-    // Camada 5: Placeholder exclusivo
-    if (signature.placeholder) {
-      try {
-        const matches = doc.querySelectorAll(`[placeholder="${CSS.escape(signature.placeholder)}"]`);
-        if (matches.length === 1) {
-          signature.strategy = 'unique_placeholder';
-          return signature;
-        }
-      } catch (e) {}
-    }
-
-    // Camada 6: Aria-label exclusivo
-    if (signature.ariaLabel) {
-      try {
-        const matches = doc.querySelectorAll(`[aria-label="${CSS.escape(signature.ariaLabel)}"]`);
-        if (matches.length === 1) {
-          signature.strategy = 'unique_aria_label';
-          return signature;
-        }
-      } catch (e) {}
-    }
-
-    // Camada 7: Seletor composto contextual (YouTube comments, Notion, Twitter, etc.)
-    if (signature.containerTag) {
-      signature.strategy = 'container_scoped';
-      signature.selector = `${signature.containerTag} ${tagName}`;
-      return signature;
-    }
-
-    // Fallback garantido: Seletor estruturado baseado nas propriedades existentes
-    signature.strategy = 'fallback_selector';
-    let sel = tagName;
-    if (field.id) sel += `#${CSS.escape(field.id)}`;
-    if (signature.name) sel += `[name="${CSS.escape(signature.name)}"]`;
-    if (signature.placeholder) sel += `[placeholder="${CSS.escape(signature.placeholder)}"]`;
-    if (signature.ariaLabel) sel += `[aria-label="${CSS.escape(signature.ariaLabel)}"]`;
-    signature.selector = sel;
-
-    return signature;
-  }
-
-  // Executa busca por querySelector mesmo através de Shadow Roots abertas
-  function querySelectorDeep(selector, rootNode = document) {
-    if (!selector) return null;
-    try {
-      const match = rootNode.querySelector(selector);
-      if (match) return match;
-    } catch (e) {}
-
-    // Vasculha elementos com Shadow Root
-    try {
-      const all = rootNode.querySelectorAll ? rootNode.querySelectorAll('*') : [];
-      for (let i = 0; i < all.length; i++) {
-        if (all[i].shadowRoot) {
-          try {
-            const shadowMatch = all[i].shadowRoot.querySelector(selector);
-            if (shadowMatch) return shadowMatch;
-          } catch (e) {}
-        }
-      }
-    } catch (e) {}
-
-    return null;
-  }
-
-  // Resolve o elemento DOM a partir da assinatura salva
-  function resolveElementFromSignature(signature, rootNode = document) {
-    if (!signature) return null;
-
-    // Função auxiliar que escolhe preferencialmente elementos visíveis na tela
-    function pickVisible(elements) {
-      if (!elements || elements.length === 0) return null;
-      if (elements.length === 1) return isFieldSupported(elements[0]) ? elements[0] : null;
-      for (let i = 0; i < elements.length; i++) {
-        const el = elements[i];
-        if (isFieldSupported(el)) {
-          // Elemento visível (tem dimensões e não está display:none)
-          if (el.offsetParent !== null || (el.getClientRects && el.getClientRects().length > 0)) {
-            return el;
-          }
-        }
-      }
-      return isFieldSupported(elements[0]) ? elements[0] : null;
-    }
-
-    // 1. Busca por seletor customizado (container_scoped_id ou fallback_selector)
-    if (signature.selector) {
-      try {
-        const match = querySelectorDeep(signature.selector, rootNode);
-        if (match && isFieldSupported(match)) return match;
-      } catch (e) {}
-    }
-
-    // 2. Busca por ID
-    if (signature.id) {
-      try {
-        const matches = rootNode.querySelectorAll ? rootNode.querySelectorAll(`#${CSS.escape(signature.id)}`) : [];
-        const found = pickVisible(Array.from(matches));
-        if (found) return found;
-      } catch (e) {}
-    }
-
-    // 3. Busca por data-testid
-    if (signature.dataTestId) {
-      try {
-        const matches = rootNode.querySelectorAll ? rootNode.querySelectorAll(`[data-testid="${CSS.escape(signature.dataTestId)}"]`) : [];
-        const found = pickVisible(Array.from(matches));
-        if (found) return found;
-      } catch (e) {}
-    }
-
-    // 4. Busca por Form + Name ou Name direto
-    if (signature.name) {
-      try {
-        if (signature.formId) {
-          const form = rootNode.querySelector(`#${CSS.escape(signature.formId)}`);
-          if (form) {
-            const matches = form.querySelectorAll(`[name="${CSS.escape(signature.name)}"]`);
-            const found = pickVisible(Array.from(matches));
-            if (found) return found;
-          }
-        }
-        const matches = rootNode.querySelectorAll ? rootNode.querySelectorAll(`[name="${CSS.escape(signature.name)}"]`) : [];
-        const found = pickVisible(Array.from(matches));
-        if (found) return found;
-      } catch (e) {}
-    }
-
-    // 5. Busca por Placeholder
-    if (signature.placeholder) {
-      try {
-        const matches = rootNode.querySelectorAll ? rootNode.querySelectorAll(`[placeholder="${CSS.escape(signature.placeholder)}"]`) : [];
-        const found = pickVisible(Array.from(matches));
-        if (found) return found;
-      } catch (e) {}
-    }
-
-    // 6. Busca por Aria-label
-    if (signature.ariaLabel) {
-      try {
-        const matches = rootNode.querySelectorAll ? rootNode.querySelectorAll(`[aria-label="${CSS.escape(signature.ariaLabel)}"]`) : [];
-        const found = pickVisible(Array.from(matches));
-        if (found) return found;
-      } catch (e) {}
-    }
-
-    return null;
+    scan(rootNode);
+    return results;
   }
 
   return {
@@ -431,7 +233,9 @@
     isFieldSupported,
     resolveSupportedField,
     getDeepActiveElement,
+    getAssociatedLabelText,
     createFieldSignature,
-    resolveElementFromSignature
+    resolveElementFromSignature,
+    findAllEditableFields
   };
 });
